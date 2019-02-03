@@ -1,5 +1,30 @@
 use std::fmt;
 use std::os::raw::*;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ExtensionChain {
+    pub s_type: StructureType,
+    pub p_next: *mut c_void,
+}
+impl ExtensionChain {
+    pub unsafe fn from_ptr(ptr: *mut c_void) -> *mut Self {
+        ::std::mem::transmute(ptr)
+    }
+    pub unsafe fn last_chain(ptr: *mut c_void) -> *mut Self {
+        assert!(!ptr.is_null());
+        let mut extension = ExtensionChain::from_ptr(ptr);
+        while !(*extension).p_next.is_null() {
+            extension = ExtensionChain::from_ptr((*extension).p_next);
+        }
+        extension
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ExtensionChainMut {
+    pub s_type: StructureType,
+    pub p_next: *mut c_void,
+}
 pub trait Handle {
     const TYPE: ObjectType;
     fn as_raw(self) -> u64;
@@ -7630,6 +7655,11 @@ impl<'a> ::std::ops::Deref for Offset2DBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for Offset2DBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> Offset2DBuilder<'a> {
     pub fn x(mut self, x: i32) -> Offset2DBuilder<'a> {
         self.inner.x = x;
@@ -7666,6 +7696,11 @@ impl<'a> ::std::ops::Deref for Offset3DBuilder<'a> {
     type Target = Offset3D;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for Offset3DBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> Offset3DBuilder<'a> {
@@ -7709,6 +7744,11 @@ impl<'a> ::std::ops::Deref for Extent2DBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for Extent2DBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> Extent2DBuilder<'a> {
     pub fn width(mut self, width: u32) -> Extent2DBuilder<'a> {
         self.inner.width = width;
@@ -7745,6 +7785,11 @@ impl<'a> ::std::ops::Deref for Extent3DBuilder<'a> {
     type Target = Extent3D;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for Extent3DBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> Extent3DBuilder<'a> {
@@ -7790,6 +7835,11 @@ impl<'a> ::std::ops::Deref for ViewportBuilder<'a> {
     type Target = Viewport;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ViewportBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ViewportBuilder<'a> {
@@ -7845,6 +7895,11 @@ impl<'a> ::std::ops::Deref for Rect2DBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for Rect2DBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> Rect2DBuilder<'a> {
     pub fn offset(mut self, offset: Offset2D) -> Rect2DBuilder<'a> {
         self.inner.offset = offset;
@@ -7881,6 +7936,11 @@ impl<'a> ::std::ops::Deref for ClearRectBuilder<'a> {
     type Target = ClearRect;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ClearRectBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ClearRectBuilder<'a> {
@@ -7926,6 +7986,11 @@ impl<'a> ::std::ops::Deref for ComponentMappingBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ComponentMappingBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ComponentMappingBuilder<'a> {
     pub fn r(mut self, r: ComponentSwizzle) -> ComponentMappingBuilder<'a> {
         self.inner.r = r;
@@ -7969,7 +8034,7 @@ impl fmt::Debug for PhysicalDeviceProperties {
             .field("device_id", &self.device_id)
             .field("device_type", &self.device_type)
             .field("device_name", &unsafe {
-                ::std::ffi::CStr::from_ptr(self.device_name.as_ptr() as *const i8)
+                ::std::ffi::CStr::from_ptr(self.device_name.as_ptr() as *const c_char)
             })
             .field("pipeline_cache_uuid", &self.pipeline_cache_uuid)
             .field("limits", &self.limits)
@@ -8008,6 +8073,11 @@ impl<'a> ::std::ops::Deref for PhysicalDevicePropertiesBuilder<'a> {
     type Target = PhysicalDeviceProperties;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDevicePropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDevicePropertiesBuilder<'a> {
@@ -8073,7 +8143,7 @@ impl fmt::Debug for ExtensionProperties {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("ExtensionProperties")
             .field("extension_name", &unsafe {
-                ::std::ffi::CStr::from_ptr(self.extension_name.as_ptr() as *const i8)
+                ::std::ffi::CStr::from_ptr(self.extension_name.as_ptr() as *const c_char)
             })
             .field("spec_version", &self.spec_version)
             .finish()
@@ -8105,6 +8175,11 @@ impl<'a> ::std::ops::Deref for ExtensionPropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExtensionPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExtensionPropertiesBuilder<'a> {
     pub fn extension_name(
         mut self,
@@ -8133,12 +8208,12 @@ impl fmt::Debug for LayerProperties {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("LayerProperties")
             .field("layer_name", &unsafe {
-                ::std::ffi::CStr::from_ptr(self.layer_name.as_ptr() as *const i8)
+                ::std::ffi::CStr::from_ptr(self.layer_name.as_ptr() as *const c_char)
             })
             .field("spec_version", &self.spec_version)
             .field("implementation_version", &self.implementation_version)
             .field("description", &unsafe {
-                ::std::ffi::CStr::from_ptr(self.description.as_ptr() as *const i8)
+                ::std::ffi::CStr::from_ptr(self.description.as_ptr() as *const c_char)
             })
             .finish()
     }
@@ -8169,6 +8244,11 @@ impl<'a> ::std::ops::Deref for LayerPropertiesBuilder<'a> {
     type Target = LayerProperties;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for LayerPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> LayerPropertiesBuilder<'a> {
@@ -8244,6 +8324,11 @@ impl<'a> ::std::ops::Deref for ApplicationInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ApplicationInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ApplicationInfoBuilder<'a> {
     pub fn application_name(
         mut self,
@@ -8268,11 +8353,15 @@ impl<'a> ApplicationInfoBuilder<'a> {
         self.inner.api_version = api_version;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ApplicationInfoBuilder<'a>
-    where
-        T: ExtendsApplicationInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsApplicationInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ApplicationInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ApplicationInfo {
@@ -8341,6 +8430,11 @@ impl<'a> ::std::ops::Deref for AllocationCallbacksBuilder<'a> {
     type Target = AllocationCallbacks;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for AllocationCallbacksBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> AllocationCallbacksBuilder<'a> {
@@ -8425,6 +8519,11 @@ impl<'a> ::std::ops::Deref for DeviceQueueCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceQueueCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceQueueCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: DeviceQueueCreateFlags) -> DeviceQueueCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -8445,11 +8544,15 @@ impl<'a> DeviceQueueCreateInfoBuilder<'a> {
         self.inner.p_queue_priorities = queue_priorities.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceQueueCreateInfoBuilder<'a>
-    where
-        T: ExtendsDeviceQueueCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceQueueCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceQueueCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceQueueCreateInfo {
@@ -8505,6 +8608,11 @@ impl<'a> ::std::ops::Deref for DeviceCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: DeviceCreateFlags) -> DeviceCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -8541,11 +8649,15 @@ impl<'a> DeviceCreateInfoBuilder<'a> {
         self.inner.p_enabled_features = enabled_features;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceCreateInfoBuilder<'a>
-    where
-        T: ExtendsDeviceCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceCreateInfo {
@@ -8597,6 +8709,11 @@ impl<'a> ::std::ops::Deref for InstanceCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for InstanceCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> InstanceCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: InstanceCreateFlags) -> InstanceCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -8625,11 +8742,15 @@ impl<'a> InstanceCreateInfoBuilder<'a> {
         self.inner.enabled_extension_count = enabled_extension_names.len() as _;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> InstanceCreateInfoBuilder<'a>
-    where
-        T: ExtendsInstanceCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsInstanceCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> InstanceCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> InstanceCreateInfo {
@@ -8660,6 +8781,11 @@ impl<'a> ::std::ops::Deref for QueueFamilyPropertiesBuilder<'a> {
     type Target = QueueFamilyProperties;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for QueueFamilyPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> QueueFamilyPropertiesBuilder<'a> {
@@ -8723,6 +8849,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceMemoryPropertiesBuilder<'a> {
     type Target = PhysicalDeviceMemoryProperties;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceMemoryPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDeviceMemoryPropertiesBuilder<'a> {
@@ -8795,6 +8926,11 @@ impl<'a> ::std::ops::Deref for MemoryAllocateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryAllocateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryAllocateInfoBuilder<'a> {
     pub fn allocation_size(mut self, allocation_size: DeviceSize) -> MemoryAllocateInfoBuilder<'a> {
         self.inner.allocation_size = allocation_size;
@@ -8804,11 +8940,15 @@ impl<'a> MemoryAllocateInfoBuilder<'a> {
         self.inner.memory_type_index = memory_type_index;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> MemoryAllocateInfoBuilder<'a>
-    where
-        T: ExtendsMemoryAllocateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsMemoryAllocateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryAllocateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryAllocateInfo {
@@ -8838,6 +8978,11 @@ impl<'a> ::std::ops::Deref for MemoryRequirementsBuilder<'a> {
     type Target = MemoryRequirements;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for MemoryRequirementsBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> MemoryRequirementsBuilder<'a> {
@@ -8880,6 +9025,11 @@ impl<'a> ::std::ops::Deref for SparseImageFormatPropertiesBuilder<'a> {
     type Target = SparseImageFormatProperties;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SparseImageFormatPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SparseImageFormatPropertiesBuilder<'a> {
@@ -8933,6 +9083,11 @@ impl<'a> ::std::ops::Deref for SparseImageMemoryRequirementsBuilder<'a> {
     type Target = SparseImageMemoryRequirements;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SparseImageMemoryRequirementsBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SparseImageMemoryRequirementsBuilder<'a> {
@@ -8999,6 +9154,11 @@ impl<'a> ::std::ops::Deref for MemoryTypeBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryTypeBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryTypeBuilder<'a> {
     pub fn property_flags(mut self, property_flags: MemoryPropertyFlags) -> MemoryTypeBuilder<'a> {
         self.inner.property_flags = property_flags;
@@ -9034,6 +9194,11 @@ impl<'a> ::std::ops::Deref for MemoryHeapBuilder<'a> {
     type Target = MemoryHeap;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for MemoryHeapBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> MemoryHeapBuilder<'a> {
@@ -9088,6 +9253,11 @@ impl<'a> ::std::ops::Deref for MappedMemoryRangeBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MappedMemoryRangeBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MappedMemoryRangeBuilder<'a> {
     pub fn memory(mut self, memory: DeviceMemory) -> MappedMemoryRangeBuilder<'a> {
         self.inner.memory = memory;
@@ -9101,11 +9271,15 @@ impl<'a> MappedMemoryRangeBuilder<'a> {
         self.inner.size = size;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> MappedMemoryRangeBuilder<'a>
-    where
-        T: ExtendsMappedMemoryRange,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsMappedMemoryRange>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MappedMemoryRangeBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MappedMemoryRange {
@@ -9135,6 +9309,11 @@ impl<'a> ::std::ops::Deref for FormatPropertiesBuilder<'a> {
     type Target = FormatProperties;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for FormatPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> FormatPropertiesBuilder<'a> {
@@ -9188,6 +9367,11 @@ impl<'a> ::std::ops::Deref for ImageFormatPropertiesBuilder<'a> {
     type Target = ImageFormatProperties;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ImageFormatPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ImageFormatPropertiesBuilder<'a> {
@@ -9246,6 +9430,11 @@ impl<'a> ::std::ops::Deref for DescriptorBufferInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DescriptorBufferInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DescriptorBufferInfoBuilder<'a> {
     pub fn buffer(mut self, buffer: Buffer) -> DescriptorBufferInfoBuilder<'a> {
         self.inner.buffer = buffer;
@@ -9286,6 +9475,11 @@ impl<'a> ::std::ops::Deref for DescriptorImageInfoBuilder<'a> {
     type Target = DescriptorImageInfo;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DescriptorImageInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DescriptorImageInfoBuilder<'a> {
@@ -9354,6 +9548,11 @@ impl<'a> ::std::ops::Deref for WriteDescriptorSetBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for WriteDescriptorSetBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> WriteDescriptorSetBuilder<'a> {
     pub fn dst_set(mut self, dst_set: DescriptorSet) -> WriteDescriptorSetBuilder<'a> {
         self.inner.dst_set = dst_set;
@@ -9398,11 +9597,15 @@ impl<'a> WriteDescriptorSetBuilder<'a> {
         self.inner.p_texel_buffer_view = texel_buffer_view.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> WriteDescriptorSetBuilder<'a>
-    where
-        T: ExtendsWriteDescriptorSet,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsWriteDescriptorSet>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> WriteDescriptorSetBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> WriteDescriptorSet {
@@ -9456,6 +9659,11 @@ impl<'a> ::std::ops::Deref for CopyDescriptorSetBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for CopyDescriptorSetBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> CopyDescriptorSetBuilder<'a> {
     pub fn src_set(mut self, src_set: DescriptorSet) -> CopyDescriptorSetBuilder<'a> {
         self.inner.src_set = src_set;
@@ -9485,11 +9693,15 @@ impl<'a> CopyDescriptorSetBuilder<'a> {
         self.inner.descriptor_count = descriptor_count;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> CopyDescriptorSetBuilder<'a>
-    where
-        T: ExtendsCopyDescriptorSet,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsCopyDescriptorSet>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> CopyDescriptorSetBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> CopyDescriptorSet {
@@ -9541,6 +9753,11 @@ impl<'a> ::std::ops::Deref for BufferCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BufferCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BufferCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: BufferCreateFlags) -> BufferCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -9566,11 +9783,15 @@ impl<'a> BufferCreateInfoBuilder<'a> {
         self.inner.p_queue_family_indices = queue_family_indices.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BufferCreateInfoBuilder<'a>
-    where
-        T: ExtendsBufferCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBufferCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BufferCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BufferCreateInfo {
@@ -9620,6 +9841,11 @@ impl<'a> ::std::ops::Deref for BufferViewCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BufferViewCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BufferViewCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: BufferViewCreateFlags) -> BufferViewCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -9641,11 +9867,15 @@ impl<'a> BufferViewCreateInfoBuilder<'a> {
         self.inner.range = range;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BufferViewCreateInfoBuilder<'a>
-    where
-        T: ExtendsBufferViewCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBufferViewCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BufferViewCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BufferViewCreateInfo {
@@ -9675,6 +9905,11 @@ impl<'a> ::std::ops::Deref for ImageSubresourceBuilder<'a> {
     type Target = ImageSubresource;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ImageSubresourceBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ImageSubresourceBuilder<'a> {
@@ -9718,6 +9953,11 @@ impl<'a> ::std::ops::Deref for ImageSubresourceLayersBuilder<'a> {
     type Target = ImageSubresourceLayers;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ImageSubresourceLayersBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ImageSubresourceLayersBuilder<'a> {
@@ -9769,6 +10009,11 @@ impl<'a> ::std::ops::Deref for ImageSubresourceRangeBuilder<'a> {
     type Target = ImageSubresourceRange;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ImageSubresourceRangeBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ImageSubresourceRangeBuilder<'a> {
@@ -9836,6 +10081,11 @@ impl<'a> ::std::ops::Deref for MemoryBarrierBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryBarrierBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryBarrierBuilder<'a> {
     pub fn src_access_mask(mut self, src_access_mask: AccessFlags) -> MemoryBarrierBuilder<'a> {
         self.inner.src_access_mask = src_access_mask;
@@ -9845,11 +10095,15 @@ impl<'a> MemoryBarrierBuilder<'a> {
         self.inner.dst_access_mask = dst_access_mask;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> MemoryBarrierBuilder<'a>
-    where
-        T: ExtendsMemoryBarrier,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsMemoryBarrier>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryBarrierBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryBarrier {
@@ -9903,6 +10157,11 @@ impl<'a> ::std::ops::Deref for BufferMemoryBarrierBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BufferMemoryBarrierBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BufferMemoryBarrierBuilder<'a> {
     pub fn src_access_mask(
         mut self,
@@ -9944,11 +10203,15 @@ impl<'a> BufferMemoryBarrierBuilder<'a> {
         self.inner.size = size;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BufferMemoryBarrierBuilder<'a>
-    where
-        T: ExtendsBufferMemoryBarrier,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBufferMemoryBarrier>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BufferMemoryBarrierBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BufferMemoryBarrier {
@@ -10004,6 +10267,11 @@ impl<'a> ::std::ops::Deref for ImageMemoryBarrierBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageMemoryBarrierBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageMemoryBarrierBuilder<'a> {
     pub fn src_access_mask(
         mut self,
@@ -10052,11 +10320,15 @@ impl<'a> ImageMemoryBarrierBuilder<'a> {
         self.inner.subresource_range = subresource_range;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageMemoryBarrierBuilder<'a>
-    where
-        T: ExtendsImageMemoryBarrier,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageMemoryBarrier>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageMemoryBarrierBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageMemoryBarrier {
@@ -10122,6 +10394,11 @@ impl<'a> ::std::ops::Deref for ImageCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: ImageCreateFlags) -> ImageCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -10175,11 +10452,15 @@ impl<'a> ImageCreateInfoBuilder<'a> {
         self.inner.initial_layout = initial_layout;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageCreateInfoBuilder<'a>
-    where
-        T: ExtendsImageCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageCreateInfo {
@@ -10211,6 +10492,11 @@ impl<'a> ::std::ops::Deref for SubresourceLayoutBuilder<'a> {
     type Target = SubresourceLayout;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SubresourceLayoutBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SubresourceLayoutBuilder<'a> {
@@ -10283,6 +10569,11 @@ impl<'a> ::std::ops::Deref for ImageViewCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageViewCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageViewCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: ImageViewCreateFlags) -> ImageViewCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -10311,11 +10602,15 @@ impl<'a> ImageViewCreateInfoBuilder<'a> {
         self.inner.subresource_range = subresource_range;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageViewCreateInfoBuilder<'a>
-    where
-        T: ExtendsImageViewCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageViewCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageViewCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageViewCreateInfo {
@@ -10345,6 +10640,11 @@ impl<'a> ::std::ops::Deref for BufferCopyBuilder<'a> {
     type Target = BufferCopy;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for BufferCopyBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> BufferCopyBuilder<'a> {
@@ -10389,6 +10689,11 @@ impl<'a> ::std::ops::Deref for SparseMemoryBindBuilder<'a> {
     type Target = SparseMemoryBind;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SparseMemoryBindBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SparseMemoryBindBuilder<'a> {
@@ -10442,6 +10747,11 @@ impl<'a> ::std::ops::Deref for SparseImageMemoryBindBuilder<'a> {
     type Target = SparseImageMemoryBind;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SparseImageMemoryBindBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SparseImageMemoryBindBuilder<'a> {
@@ -10510,6 +10820,11 @@ impl<'a> ::std::ops::Deref for SparseBufferMemoryBindInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SparseBufferMemoryBindInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SparseBufferMemoryBindInfoBuilder<'a> {
     pub fn buffer(mut self, buffer: Buffer) -> SparseBufferMemoryBindInfoBuilder<'a> {
         self.inner.buffer = buffer;
@@ -10556,6 +10871,11 @@ impl<'a> ::std::ops::Deref for SparseImageOpaqueMemoryBindInfoBuilder<'a> {
     type Target = SparseImageOpaqueMemoryBindInfo;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SparseImageOpaqueMemoryBindInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SparseImageOpaqueMemoryBindInfoBuilder<'a> {
@@ -10607,6 +10927,11 @@ impl<'a> ::std::ops::Deref for SparseImageMemoryBindInfoBuilder<'a> {
     type Target = SparseImageMemoryBindInfo;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SparseImageMemoryBindInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SparseImageMemoryBindInfoBuilder<'a> {
@@ -10679,6 +11004,11 @@ impl<'a> ::std::ops::Deref for BindSparseInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BindSparseInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BindSparseInfoBuilder<'a> {
     pub fn wait_semaphores(
         mut self,
@@ -10720,11 +11050,15 @@ impl<'a> BindSparseInfoBuilder<'a> {
         self.inner.p_signal_semaphores = signal_semaphores.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BindSparseInfoBuilder<'a>
-    where
-        T: ExtendsBindSparseInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBindSparseInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BindSparseInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BindSparseInfo {
@@ -10756,6 +11090,11 @@ impl<'a> ::std::ops::Deref for ImageCopyBuilder<'a> {
     type Target = ImageCopy;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ImageCopyBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ImageCopyBuilder<'a> {
@@ -10825,6 +11164,11 @@ impl<'a> ::std::ops::Deref for ImageBlitBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageBlitBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageBlitBuilder<'a> {
     pub fn src_subresource(
         mut self,
@@ -10878,6 +11222,11 @@ impl<'a> ::std::ops::Deref for BufferImageCopyBuilder<'a> {
     type Target = BufferImageCopy;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for BufferImageCopyBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> BufferImageCopyBuilder<'a> {
@@ -10937,6 +11286,11 @@ impl<'a> ::std::ops::Deref for ImageResolveBuilder<'a> {
     type Target = ImageResolve;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ImageResolveBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ImageResolveBuilder<'a> {
@@ -11009,6 +11363,11 @@ impl<'a> ::std::ops::Deref for ShaderModuleCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ShaderModuleCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ShaderModuleCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: ShaderModuleCreateFlags) -> ShaderModuleCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -11019,11 +11378,15 @@ impl<'a> ShaderModuleCreateInfoBuilder<'a> {
         self.inner.p_code = code.as_ptr() as *const u32;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ShaderModuleCreateInfoBuilder<'a>
-    where
-        T: ExtendsShaderModuleCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsShaderModuleCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ShaderModuleCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ShaderModuleCreateInfo {
@@ -11066,6 +11429,11 @@ impl<'a> ::std::ops::Deref for DescriptorSetLayoutBindingBuilder<'a> {
     type Target = DescriptorSetLayoutBinding;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DescriptorSetLayoutBindingBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DescriptorSetLayoutBindingBuilder<'a> {
@@ -11145,6 +11513,11 @@ impl<'a> ::std::ops::Deref for DescriptorSetLayoutCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DescriptorSetLayoutCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DescriptorSetLayoutCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -11161,11 +11534,15 @@ impl<'a> DescriptorSetLayoutCreateInfoBuilder<'a> {
         self.inner.p_bindings = bindings.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DescriptorSetLayoutCreateInfoBuilder<'a>
-    where
-        T: ExtendsDescriptorSetLayoutCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDescriptorSetLayoutCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DescriptorSetLayoutCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DescriptorSetLayoutCreateInfo {
@@ -11194,6 +11571,11 @@ impl<'a> ::std::ops::Deref for DescriptorPoolSizeBuilder<'a> {
     type Target = DescriptorPoolSize;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DescriptorPoolSizeBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DescriptorPoolSizeBuilder<'a> {
@@ -11250,6 +11632,11 @@ impl<'a> ::std::ops::Deref for DescriptorPoolCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DescriptorPoolCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DescriptorPoolCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -11270,11 +11657,15 @@ impl<'a> DescriptorPoolCreateInfoBuilder<'a> {
         self.inner.p_pool_sizes = pool_sizes.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DescriptorPoolCreateInfoBuilder<'a>
-    where
-        T: ExtendsDescriptorPoolCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDescriptorPoolCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DescriptorPoolCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DescriptorPoolCreateInfo {
@@ -11320,6 +11711,11 @@ impl<'a> ::std::ops::Deref for DescriptorSetAllocateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DescriptorSetAllocateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DescriptorSetAllocateInfoBuilder<'a> {
     pub fn descriptor_pool(
         mut self,
@@ -11336,11 +11732,15 @@ impl<'a> DescriptorSetAllocateInfoBuilder<'a> {
         self.inner.p_set_layouts = set_layouts.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DescriptorSetAllocateInfoBuilder<'a>
-    where
-        T: ExtendsDescriptorSetAllocateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDescriptorSetAllocateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DescriptorSetAllocateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DescriptorSetAllocateInfo {
@@ -11370,6 +11770,11 @@ impl<'a> ::std::ops::Deref for SpecializationMapEntryBuilder<'a> {
     type Target = SpecializationMapEntry;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SpecializationMapEntryBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SpecializationMapEntryBuilder<'a> {
@@ -11423,6 +11828,11 @@ impl<'a> ::std::ops::Deref for SpecializationInfoBuilder<'a> {
     type Target = SpecializationInfo;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SpecializationInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SpecializationInfoBuilder<'a> {
@@ -11486,6 +11896,11 @@ impl<'a> ::std::ops::Deref for PipelineShaderStageCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineShaderStageCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineShaderStageCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -11513,11 +11928,15 @@ impl<'a> PipelineShaderStageCreateInfoBuilder<'a> {
         self.inner.p_specialization_info = specialization_info;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineShaderStageCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineShaderStageCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineShaderStageCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineShaderStageCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineShaderStageCreateInfo {
@@ -11567,6 +11986,11 @@ impl<'a> ::std::ops::Deref for ComputePipelineCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ComputePipelineCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ComputePipelineCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: PipelineCreateFlags) -> ComputePipelineCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -11597,11 +12021,15 @@ impl<'a> ComputePipelineCreateInfoBuilder<'a> {
         self.inner.base_pipeline_index = base_pipeline_index;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ComputePipelineCreateInfoBuilder<'a>
-    where
-        T: ExtendsComputePipelineCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsComputePipelineCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ComputePipelineCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ComputePipelineCreateInfo {
@@ -11631,6 +12059,11 @@ impl<'a> ::std::ops::Deref for VertexInputBindingDescriptionBuilder<'a> {
     type Target = VertexInputBindingDescription;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for VertexInputBindingDescriptionBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> VertexInputBindingDescriptionBuilder<'a> {
@@ -11677,6 +12110,11 @@ impl<'a> ::std::ops::Deref for VertexInputAttributeDescriptionBuilder<'a> {
     type Target = VertexInputAttributeDescription;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for VertexInputAttributeDescriptionBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> VertexInputAttributeDescriptionBuilder<'a> {
@@ -11743,6 +12181,11 @@ impl<'a> ::std::ops::Deref for PipelineVertexInputStateCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineVertexInputStateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineVertexInputStateCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -11767,11 +12210,15 @@ impl<'a> PipelineVertexInputStateCreateInfoBuilder<'a> {
         self.inner.p_vertex_attribute_descriptions = vertex_attribute_descriptions.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineVertexInputStateCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineVertexInputStateCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineVertexInputStateCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineVertexInputStateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineVertexInputStateCreateInfo {
@@ -11817,6 +12264,11 @@ impl<'a> ::std::ops::Deref for PipelineInputAssemblyStateCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineInputAssemblyStateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineInputAssemblyStateCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -11839,11 +12291,15 @@ impl<'a> PipelineInputAssemblyStateCreateInfoBuilder<'a> {
         self.inner.primitive_restart_enable = primitive_restart_enable.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineInputAssemblyStateCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineInputAssemblyStateCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineInputAssemblyStateCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineInputAssemblyStateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineInputAssemblyStateCreateInfo {
@@ -11887,6 +12343,11 @@ impl<'a> ::std::ops::Deref for PipelineTessellationStateCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineTessellationStateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineTessellationStateCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -11902,11 +12363,15 @@ impl<'a> PipelineTessellationStateCreateInfoBuilder<'a> {
         self.inner.patch_control_points = patch_control_points;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineTessellationStateCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineTessellationStateCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineTessellationStateCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineTessellationStateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineTessellationStateCreateInfo {
@@ -11956,6 +12421,11 @@ impl<'a> ::std::ops::Deref for PipelineViewportStateCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineViewportStateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineViewportStateCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -11994,11 +12464,15 @@ impl<'a> PipelineViewportStateCreateInfoBuilder<'a> {
         self.inner.p_scissors = scissors.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineViewportStateCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineViewportStateCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineViewportStateCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineViewportStateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineViewportStateCreateInfo {
@@ -12058,6 +12532,11 @@ impl<'a> ::std::ops::Deref for PipelineRasterizationStateCreateInfoBuilder<'a> {
     type Target = PipelineRasterizationStateCreateInfo;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PipelineRasterizationStateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PipelineRasterizationStateCreateInfoBuilder<'a> {
@@ -12138,11 +12617,15 @@ impl<'a> PipelineRasterizationStateCreateInfoBuilder<'a> {
         self.inner.line_width = line_width;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineRasterizationStateCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineRasterizationStateCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineRasterizationStateCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineRasterizationStateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineRasterizationStateCreateInfo {
@@ -12196,6 +12679,11 @@ impl<'a> ::std::ops::Deref for PipelineMultisampleStateCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineMultisampleStateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineMultisampleStateCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -12246,11 +12734,15 @@ impl<'a> PipelineMultisampleStateCreateInfoBuilder<'a> {
         self.inner.alpha_to_one_enable = alpha_to_one_enable.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineMultisampleStateCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineMultisampleStateCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineMultisampleStateCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineMultisampleStateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineMultisampleStateCreateInfo {
@@ -12285,6 +12777,11 @@ impl<'a> ::std::ops::Deref for PipelineColorBlendAttachmentStateBuilder<'a> {
     type Target = PipelineColorBlendAttachmentState;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PipelineColorBlendAttachmentStateBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PipelineColorBlendAttachmentStateBuilder<'a> {
@@ -12393,6 +12890,11 @@ impl<'a> ::std::ops::Deref for PipelineColorBlendStateCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineColorBlendStateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineColorBlendStateCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -12427,11 +12929,15 @@ impl<'a> PipelineColorBlendStateCreateInfoBuilder<'a> {
         self.inner.blend_constants = blend_constants;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineColorBlendStateCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineColorBlendStateCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineColorBlendStateCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineColorBlendStateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineColorBlendStateCreateInfo {
@@ -12477,6 +12983,11 @@ impl<'a> ::std::ops::Deref for PipelineDynamicStateCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineDynamicStateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineDynamicStateCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -12493,11 +13004,15 @@ impl<'a> PipelineDynamicStateCreateInfoBuilder<'a> {
         self.inner.p_dynamic_states = dynamic_states.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineDynamicStateCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineDynamicStateCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineDynamicStateCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineDynamicStateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineDynamicStateCreateInfo {
@@ -12531,6 +13046,11 @@ impl<'a> ::std::ops::Deref for StencilOpStateBuilder<'a> {
     type Target = StencilOpState;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for StencilOpStateBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> StencilOpStateBuilder<'a> {
@@ -12619,6 +13139,11 @@ impl<'a> ::std::ops::Deref for PipelineDepthStencilStateCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineDepthStencilStateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineDepthStencilStateCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -12687,11 +13212,15 @@ impl<'a> PipelineDepthStencilStateCreateInfoBuilder<'a> {
         self.inner.max_depth_bounds = max_depth_bounds;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineDepthStencilStateCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineDepthStencilStateCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineDepthStencilStateCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineDepthStencilStateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineDepthStencilStateCreateInfo {
@@ -12763,6 +13292,11 @@ impl<'a> ::std::ops::Deref for GraphicsPipelineCreateInfoBuilder<'a> {
     type Target = GraphicsPipelineCreateInfo;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for GraphicsPipelineCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> GraphicsPipelineCreateInfoBuilder<'a> {
@@ -12867,11 +13401,15 @@ impl<'a> GraphicsPipelineCreateInfoBuilder<'a> {
         self.inner.base_pipeline_index = base_pipeline_index;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> GraphicsPipelineCreateInfoBuilder<'a>
-    where
-        T: ExtendsGraphicsPipelineCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsGraphicsPipelineCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> GraphicsPipelineCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> GraphicsPipelineCreateInfo {
@@ -12917,6 +13455,11 @@ impl<'a> ::std::ops::Deref for PipelineCacheCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineCacheCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineCacheCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: PipelineCacheCreateFlags) -> PipelineCacheCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -12927,11 +13470,15 @@ impl<'a> PipelineCacheCreateInfoBuilder<'a> {
         self.inner.p_initial_data = initial_data.as_ptr() as *const c_void;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineCacheCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineCacheCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineCacheCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineCacheCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineCacheCreateInfo {
@@ -12961,6 +13508,11 @@ impl<'a> ::std::ops::Deref for PushConstantRangeBuilder<'a> {
     type Target = PushConstantRange;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PushConstantRangeBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PushConstantRangeBuilder<'a> {
@@ -13023,6 +13575,11 @@ impl<'a> ::std::ops::Deref for PipelineLayoutCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineLayoutCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineLayoutCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -13047,11 +13604,15 @@ impl<'a> PipelineLayoutCreateInfoBuilder<'a> {
         self.inner.p_push_constant_ranges = push_constant_ranges.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineLayoutCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineLayoutCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineLayoutCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineLayoutCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineLayoutCreateInfo {
@@ -13121,6 +13682,11 @@ impl<'a> ::std::ops::Deref for SamplerCreateInfoBuilder<'a> {
     type Target = SamplerCreateInfo;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SamplerCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SamplerCreateInfoBuilder<'a> {
@@ -13200,11 +13766,15 @@ impl<'a> SamplerCreateInfoBuilder<'a> {
         self.inner.unnormalized_coordinates = unnormalized_coordinates.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SamplerCreateInfoBuilder<'a>
-    where
-        T: ExtendsSamplerCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSamplerCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SamplerCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SamplerCreateInfo {
@@ -13248,6 +13818,11 @@ impl<'a> ::std::ops::Deref for CommandPoolCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for CommandPoolCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> CommandPoolCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: CommandPoolCreateFlags) -> CommandPoolCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -13260,11 +13835,15 @@ impl<'a> CommandPoolCreateInfoBuilder<'a> {
         self.inner.queue_family_index = queue_family_index;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> CommandPoolCreateInfoBuilder<'a>
-    where
-        T: ExtendsCommandPoolCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsCommandPoolCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> CommandPoolCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> CommandPoolCreateInfo {
@@ -13310,6 +13889,11 @@ impl<'a> ::std::ops::Deref for CommandBufferAllocateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for CommandBufferAllocateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> CommandBufferAllocateInfoBuilder<'a> {
     pub fn command_pool(
         mut self,
@@ -13329,11 +13913,15 @@ impl<'a> CommandBufferAllocateInfoBuilder<'a> {
         self.inner.command_buffer_count = command_buffer_count;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> CommandBufferAllocateInfoBuilder<'a>
-    where
-        T: ExtendsCommandBufferAllocateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsCommandBufferAllocateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> CommandBufferAllocateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> CommandBufferAllocateInfo {
@@ -13385,6 +13973,11 @@ impl<'a> ::std::ops::Deref for CommandBufferInheritanceInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for CommandBufferInheritanceInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> CommandBufferInheritanceInfoBuilder<'a> {
     pub fn render_pass(
         mut self,
@@ -13425,11 +14018,15 @@ impl<'a> CommandBufferInheritanceInfoBuilder<'a> {
         self.inner.pipeline_statistics = pipeline_statistics;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> CommandBufferInheritanceInfoBuilder<'a>
-    where
-        T: ExtendsCommandBufferInheritanceInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsCommandBufferInheritanceInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> CommandBufferInheritanceInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> CommandBufferInheritanceInfo {
@@ -13473,6 +14070,11 @@ impl<'a> ::std::ops::Deref for CommandBufferBeginInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for CommandBufferBeginInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> CommandBufferBeginInfoBuilder<'a> {
     pub fn flags(mut self, flags: CommandBufferUsageFlags) -> CommandBufferBeginInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -13485,11 +14087,15 @@ impl<'a> CommandBufferBeginInfoBuilder<'a> {
         self.inner.p_inheritance_info = inheritance_info;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> CommandBufferBeginInfoBuilder<'a>
-    where
-        T: ExtendsCommandBufferBeginInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsCommandBufferBeginInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> CommandBufferBeginInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> CommandBufferBeginInfo {
@@ -13552,6 +14158,11 @@ impl<'a> ::std::ops::Deref for RenderPassBeginInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for RenderPassBeginInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> RenderPassBeginInfoBuilder<'a> {
     pub fn render_pass(mut self, render_pass: RenderPass) -> RenderPassBeginInfoBuilder<'a> {
         self.inner.render_pass = render_pass;
@@ -13573,11 +14184,15 @@ impl<'a> RenderPassBeginInfoBuilder<'a> {
         self.inner.p_clear_values = clear_values.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> RenderPassBeginInfoBuilder<'a>
-    where
-        T: ExtendsRenderPassBeginInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsRenderPassBeginInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> RenderPassBeginInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> RenderPassBeginInfo {
@@ -13618,6 +14233,11 @@ impl<'a> ::std::ops::Deref for ClearDepthStencilValueBuilder<'a> {
     type Target = ClearDepthStencilValue;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ClearDepthStencilValueBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ClearDepthStencilValueBuilder<'a> {
@@ -13678,6 +14298,11 @@ impl<'a> ::std::ops::Deref for ClearAttachmentBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ClearAttachmentBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ClearAttachmentBuilder<'a> {
     pub fn aspect_mask(mut self, aspect_mask: ImageAspectFlags) -> ClearAttachmentBuilder<'a> {
         self.inner.aspect_mask = aspect_mask;
@@ -13724,6 +14349,11 @@ impl<'a> ::std::ops::Deref for AttachmentDescriptionBuilder<'a> {
     type Target = AttachmentDescription;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for AttachmentDescriptionBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> AttachmentDescriptionBuilder<'a> {
@@ -13800,6 +14430,11 @@ impl<'a> ::std::ops::Deref for AttachmentReferenceBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AttachmentReferenceBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AttachmentReferenceBuilder<'a> {
     pub fn attachment(mut self, attachment: u32) -> AttachmentReferenceBuilder<'a> {
         self.inner.attachment = attachment;
@@ -13859,6 +14494,11 @@ impl<'a> ::std::ops::Deref for SubpassDescriptionBuilder<'a> {
     type Target = SubpassDescription;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SubpassDescriptionBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SubpassDescriptionBuilder<'a> {
@@ -13943,6 +14583,11 @@ impl<'a> ::std::ops::Deref for SubpassDependencyBuilder<'a> {
     type Target = SubpassDependency;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SubpassDependencyBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SubpassDependencyBuilder<'a> {
@@ -14034,6 +14679,11 @@ impl<'a> ::std::ops::Deref for RenderPassCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for RenderPassCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> RenderPassCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: RenderPassCreateFlags) -> RenderPassCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -14063,11 +14713,15 @@ impl<'a> RenderPassCreateInfoBuilder<'a> {
         self.inner.p_dependencies = dependencies.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> RenderPassCreateInfoBuilder<'a>
-    where
-        T: ExtendsRenderPassCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsRenderPassCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> RenderPassCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> RenderPassCreateInfo {
@@ -14109,16 +14763,25 @@ impl<'a> ::std::ops::Deref for EventCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for EventCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> EventCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: EventCreateFlags) -> EventCreateInfoBuilder<'a> {
         self.inner.flags = flags;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> EventCreateInfoBuilder<'a>
-    where
-        T: ExtendsEventCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsEventCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> EventCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> EventCreateInfo {
@@ -14160,16 +14823,25 @@ impl<'a> ::std::ops::Deref for FenceCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for FenceCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> FenceCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: FenceCreateFlags) -> FenceCreateInfoBuilder<'a> {
         self.inner.flags = flags;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> FenceCreateInfoBuilder<'a>
-    where
-        T: ExtendsFenceCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsFenceCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> FenceCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> FenceCreateInfo {
@@ -14251,6 +14923,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceFeaturesBuilder<'a> {
     type Target = PhysicalDeviceFeatures;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceFeaturesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDeviceFeaturesBuilder<'a> {
@@ -14633,6 +15310,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceSparsePropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceSparsePropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceSparsePropertiesBuilder<'a> {
     pub fn residency_standard2_d_block_shape(
         mut self,
@@ -14912,6 +15594,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceLimitsBuilder<'a> {
     type Target = PhysicalDeviceLimits;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceLimitsBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDeviceLimitsBuilder<'a> {
@@ -15699,16 +16386,25 @@ impl<'a> ::std::ops::Deref for SemaphoreCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SemaphoreCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SemaphoreCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: SemaphoreCreateFlags) -> SemaphoreCreateInfoBuilder<'a> {
         self.inner.flags = flags;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SemaphoreCreateInfoBuilder<'a>
-    where
-        T: ExtendsSemaphoreCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSemaphoreCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SemaphoreCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SemaphoreCreateInfo {
@@ -15756,6 +16452,11 @@ impl<'a> ::std::ops::Deref for QueryPoolCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for QueryPoolCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> QueryPoolCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: QueryPoolCreateFlags) -> QueryPoolCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -15776,11 +16477,15 @@ impl<'a> QueryPoolCreateInfoBuilder<'a> {
         self.inner.pipeline_statistics = pipeline_statistics;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> QueryPoolCreateInfoBuilder<'a>
-    where
-        T: ExtendsQueryPoolCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsQueryPoolCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> QueryPoolCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> QueryPoolCreateInfo {
@@ -15834,6 +16539,11 @@ impl<'a> ::std::ops::Deref for FramebufferCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for FramebufferCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> FramebufferCreateInfoBuilder<'a> {
     pub fn flags(mut self, flags: FramebufferCreateFlags) -> FramebufferCreateInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -15860,11 +16570,15 @@ impl<'a> FramebufferCreateInfoBuilder<'a> {
         self.inner.layers = layers;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> FramebufferCreateInfoBuilder<'a>
-    where
-        T: ExtendsFramebufferCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsFramebufferCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> FramebufferCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> FramebufferCreateInfo {
@@ -15895,6 +16609,11 @@ impl<'a> ::std::ops::Deref for DrawIndirectCommandBuilder<'a> {
     type Target = DrawIndirectCommand;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DrawIndirectCommandBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DrawIndirectCommandBuilder<'a> {
@@ -15945,6 +16664,11 @@ impl<'a> ::std::ops::Deref for DrawIndexedIndirectCommandBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DrawIndexedIndirectCommandBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DrawIndexedIndirectCommandBuilder<'a> {
     pub fn index_count(mut self, index_count: u32) -> DrawIndexedIndirectCommandBuilder<'a> {
         self.inner.index_count = index_count;
@@ -15993,6 +16717,11 @@ impl<'a> ::std::ops::Deref for DispatchIndirectCommandBuilder<'a> {
     type Target = DispatchIndirectCommand;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DispatchIndirectCommandBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DispatchIndirectCommandBuilder<'a> {
@@ -16059,6 +16788,11 @@ impl<'a> ::std::ops::Deref for SubmitInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SubmitInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SubmitInfoBuilder<'a> {
     pub fn wait_semaphores(mut self, wait_semaphores: &'a [Semaphore]) -> SubmitInfoBuilder<'a> {
         self.inner.wait_semaphore_count = wait_semaphores.len() as _;
@@ -16089,11 +16823,15 @@ impl<'a> SubmitInfoBuilder<'a> {
         self.inner.p_signal_semaphores = signal_semaphores.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SubmitInfoBuilder<'a>
-    where
-        T: ExtendsSubmitInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSubmitInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SubmitInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SubmitInfo {
@@ -16140,6 +16878,11 @@ impl<'a> ::std::ops::Deref for DisplayPropertiesKHRBuilder<'a> {
     type Target = DisplayPropertiesKHR;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DisplayPropertiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DisplayPropertiesKHRBuilder<'a> {
@@ -16214,6 +16957,11 @@ impl<'a> ::std::ops::Deref for DisplayPlanePropertiesKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayPlanePropertiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayPlanePropertiesKHRBuilder<'a> {
     pub fn current_display(
         mut self,
@@ -16257,6 +17005,11 @@ impl<'a> ::std::ops::Deref for DisplayModeParametersKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayModeParametersKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayModeParametersKHRBuilder<'a> {
     pub fn visible_region(
         mut self,
@@ -16295,6 +17048,11 @@ impl<'a> ::std::ops::Deref for DisplayModePropertiesKHRBuilder<'a> {
     type Target = DisplayModePropertiesKHR;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DisplayModePropertiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DisplayModePropertiesKHRBuilder<'a> {
@@ -16353,6 +17111,11 @@ impl<'a> ::std::ops::Deref for DisplayModeCreateInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayModeCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayModeCreateInfoKHRBuilder<'a> {
     pub fn flags(
         mut self,
@@ -16368,11 +17131,15 @@ impl<'a> DisplayModeCreateInfoKHRBuilder<'a> {
         self.inner.parameters = parameters;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DisplayModeCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsDisplayModeCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDisplayModeCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DisplayModeCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DisplayModeCreateInfoKHR {
@@ -16408,6 +17175,11 @@ impl<'a> ::std::ops::Deref for DisplayPlaneCapabilitiesKHRBuilder<'a> {
     type Target = DisplayPlaneCapabilitiesKHR;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DisplayPlaneCapabilitiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DisplayPlaneCapabilitiesKHRBuilder<'a> {
@@ -16527,6 +17299,11 @@ impl<'a> ::std::ops::Deref for DisplaySurfaceCreateInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplaySurfaceCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplaySurfaceCreateInfoKHRBuilder<'a> {
     pub fn flags(
         mut self,
@@ -16578,11 +17355,15 @@ impl<'a> DisplaySurfaceCreateInfoKHRBuilder<'a> {
         self.inner.image_extent = image_extent;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DisplaySurfaceCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsDisplaySurfaceCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDisplaySurfaceCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DisplaySurfaceCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DisplaySurfaceCreateInfoKHR {
@@ -16629,6 +17410,11 @@ impl<'a> ::std::ops::Deref for DisplayPresentInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayPresentInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayPresentInfoKHRBuilder<'a> {
     pub fn src_rect(mut self, src_rect: Rect2D) -> DisplayPresentInfoKHRBuilder<'a> {
         self.inner.src_rect = src_rect;
@@ -16642,11 +17428,15 @@ impl<'a> DisplayPresentInfoKHRBuilder<'a> {
         self.inner.persistent = persistent.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DisplayPresentInfoKHRBuilder<'a>
-    where
-        T: ExtendsDisplayPresentInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDisplayPresentInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DisplayPresentInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DisplayPresentInfoKHR {
@@ -16683,6 +17473,11 @@ impl<'a> ::std::ops::Deref for SurfaceCapabilitiesKHRBuilder<'a> {
     type Target = SurfaceCapabilitiesKHR;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SurfaceCapabilitiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SurfaceCapabilitiesKHRBuilder<'a> {
@@ -16788,6 +17583,11 @@ impl<'a> ::std::ops::Deref for AndroidSurfaceCreateInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AndroidSurfaceCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AndroidSurfaceCreateInfoKHRBuilder<'a> {
     pub fn flags(
         mut self,
@@ -16800,11 +17600,15 @@ impl<'a> AndroidSurfaceCreateInfoKHRBuilder<'a> {
         self.inner.window = window;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> AndroidSurfaceCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsAndroidSurfaceCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsAndroidSurfaceCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> AndroidSurfaceCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> AndroidSurfaceCreateInfoKHR {
@@ -16848,6 +17652,11 @@ impl<'a> ::std::ops::Deref for ViSurfaceCreateInfoNNBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ViSurfaceCreateInfoNNBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ViSurfaceCreateInfoNNBuilder<'a> {
     pub fn flags(mut self, flags: ViSurfaceCreateFlagsNN) -> ViSurfaceCreateInfoNNBuilder<'a> {
         self.inner.flags = flags;
@@ -16857,11 +17666,15 @@ impl<'a> ViSurfaceCreateInfoNNBuilder<'a> {
         self.inner.window = window;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ViSurfaceCreateInfoNNBuilder<'a>
-    where
-        T: ExtendsViSurfaceCreateInfoNN,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsViSurfaceCreateInfoNN>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ViSurfaceCreateInfoNNBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ViSurfaceCreateInfoNN {
@@ -16907,6 +17720,11 @@ impl<'a> ::std::ops::Deref for WaylandSurfaceCreateInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for WaylandSurfaceCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> WaylandSurfaceCreateInfoKHRBuilder<'a> {
     pub fn flags(
         mut self,
@@ -16923,11 +17741,15 @@ impl<'a> WaylandSurfaceCreateInfoKHRBuilder<'a> {
         self.inner.surface = surface;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> WaylandSurfaceCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsWaylandSurfaceCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsWaylandSurfaceCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> WaylandSurfaceCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> WaylandSurfaceCreateInfoKHR {
@@ -16973,6 +17795,11 @@ impl<'a> ::std::ops::Deref for Win32SurfaceCreateInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for Win32SurfaceCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> Win32SurfaceCreateInfoKHRBuilder<'a> {
     pub fn flags(
         mut self,
@@ -16989,11 +17816,15 @@ impl<'a> Win32SurfaceCreateInfoKHRBuilder<'a> {
         self.inner.hwnd = hwnd;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> Win32SurfaceCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsWin32SurfaceCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsWin32SurfaceCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> Win32SurfaceCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> Win32SurfaceCreateInfoKHR {
@@ -17039,6 +17870,11 @@ impl<'a> ::std::ops::Deref for XlibSurfaceCreateInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for XlibSurfaceCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> XlibSurfaceCreateInfoKHRBuilder<'a> {
     pub fn flags(
         mut self,
@@ -17055,11 +17891,15 @@ impl<'a> XlibSurfaceCreateInfoKHRBuilder<'a> {
         self.inner.window = window;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> XlibSurfaceCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsXlibSurfaceCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsXlibSurfaceCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> XlibSurfaceCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> XlibSurfaceCreateInfoKHR {
@@ -17105,6 +17945,11 @@ impl<'a> ::std::ops::Deref for XcbSurfaceCreateInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for XcbSurfaceCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> XcbSurfaceCreateInfoKHRBuilder<'a> {
     pub fn flags(mut self, flags: XcbSurfaceCreateFlagsKHR) -> XcbSurfaceCreateInfoKHRBuilder<'a> {
         self.inner.flags = flags;
@@ -17121,11 +17966,15 @@ impl<'a> XcbSurfaceCreateInfoKHRBuilder<'a> {
         self.inner.window = window;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> XcbSurfaceCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsXcbSurfaceCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsXcbSurfaceCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> XcbSurfaceCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> XcbSurfaceCreateInfoKHR {
@@ -17169,6 +18018,11 @@ impl<'a> ::std::ops::Deref for ImagePipeSurfaceCreateInfoFUCHSIABuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImagePipeSurfaceCreateInfoFUCHSIABuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImagePipeSurfaceCreateInfoFUCHSIABuilder<'a> {
     pub fn flags(
         mut self,
@@ -17184,11 +18038,15 @@ impl<'a> ImagePipeSurfaceCreateInfoFUCHSIABuilder<'a> {
         self.inner.image_pipe_handle = image_pipe_handle;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImagePipeSurfaceCreateInfoFUCHSIABuilder<'a>
-    where
-        T: ExtendsImagePipeSurfaceCreateInfoFUCHSIA,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImagePipeSurfaceCreateInfoFUCHSIA>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImagePipeSurfaceCreateInfoFUCHSIABuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImagePipeSurfaceCreateInfoFUCHSIA {
@@ -17217,6 +18075,11 @@ impl<'a> ::std::ops::Deref for SurfaceFormatKHRBuilder<'a> {
     type Target = SurfaceFormatKHR;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SurfaceFormatKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SurfaceFormatKHRBuilder<'a> {
@@ -17295,6 +18158,11 @@ impl<'a> ::std::ops::Deref for SwapchainCreateInfoKHRBuilder<'a> {
     type Target = SwapchainCreateInfoKHR;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SwapchainCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SwapchainCreateInfoKHRBuilder<'a> {
@@ -17386,11 +18254,15 @@ impl<'a> SwapchainCreateInfoKHRBuilder<'a> {
         self.inner.old_swapchain = old_swapchain;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SwapchainCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsSwapchainCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSwapchainCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SwapchainCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SwapchainCreateInfoKHR {
@@ -17442,6 +18314,11 @@ impl<'a> ::std::ops::Deref for PresentInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PresentInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PresentInfoKHRBuilder<'a> {
     pub fn wait_semaphores(
         mut self,
@@ -17466,11 +18343,15 @@ impl<'a> PresentInfoKHRBuilder<'a> {
         self.inner.p_results = results.as_mut_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PresentInfoKHRBuilder<'a>
-    where
-        T: ExtendsPresentInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPresentInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PresentInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PresentInfoKHR {
@@ -17528,6 +18409,11 @@ impl<'a> ::std::ops::Deref for DebugReportCallbackCreateInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DebugReportCallbackCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DebugReportCallbackCreateInfoEXTBuilder<'a> {
     pub fn flags(
         mut self,
@@ -17550,11 +18436,15 @@ impl<'a> DebugReportCallbackCreateInfoEXTBuilder<'a> {
         self.inner.p_user_data = user_data;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DebugReportCallbackCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsDebugReportCallbackCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDebugReportCallbackCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DebugReportCallbackCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DebugReportCallbackCreateInfoEXT {
@@ -17599,6 +18489,11 @@ impl<'a> ::std::ops::Deref for ValidationFlagsEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ValidationFlagsEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ValidationFlagsEXTBuilder<'a> {
     pub fn disabled_validation_checks(
         mut self,
@@ -17608,11 +18503,15 @@ impl<'a> ValidationFlagsEXTBuilder<'a> {
         self.inner.p_disabled_validation_checks = disabled_validation_checks.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ValidationFlagsEXTBuilder<'a>
-    where
-        T: ExtendsValidationFlagsEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsValidationFlagsEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ValidationFlagsEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ValidationFlagsEXT {
@@ -17658,6 +18557,11 @@ impl<'a> ::std::ops::Deref for PipelineRasterizationStateRasterizationOrderAMDBu
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineRasterizationStateRasterizationOrderAMDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineRasterizationStateRasterizationOrderAMDBuilder<'a> {
     pub fn rasterization_order(
         mut self,
@@ -17666,14 +18570,15 @@ impl<'a> PipelineRasterizationStateRasterizationOrderAMDBuilder<'a> {
         self.inner.rasterization_order = rasterization_order;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPipelineRasterizationStateRasterizationOrderAMD>(
         mut self,
-        next: &'a T,
-    ) -> PipelineRasterizationStateRasterizationOrderAMDBuilder<'a>
-    where
-        T: ExtendsPipelineRasterizationStateRasterizationOrderAMD,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineRasterizationStateRasterizationOrderAMDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineRasterizationStateRasterizationOrderAMD {
@@ -17719,6 +18624,11 @@ impl<'a> ::std::ops::Deref for DebugMarkerObjectNameInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DebugMarkerObjectNameInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DebugMarkerObjectNameInfoEXTBuilder<'a> {
     pub fn object_type(
         mut self,
@@ -17738,11 +18648,15 @@ impl<'a> DebugMarkerObjectNameInfoEXTBuilder<'a> {
         self.inner.p_object_name = object_name.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DebugMarkerObjectNameInfoEXTBuilder<'a>
-    where
-        T: ExtendsDebugMarkerObjectNameInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDebugMarkerObjectNameInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DebugMarkerObjectNameInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DebugMarkerObjectNameInfoEXT {
@@ -17792,6 +18706,11 @@ impl<'a> ::std::ops::Deref for DebugMarkerObjectTagInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DebugMarkerObjectTagInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DebugMarkerObjectTagInfoEXTBuilder<'a> {
     pub fn object_type(
         mut self,
@@ -17813,11 +18732,15 @@ impl<'a> DebugMarkerObjectTagInfoEXTBuilder<'a> {
         self.inner.p_tag = tag.as_ptr() as *const c_void;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DebugMarkerObjectTagInfoEXTBuilder<'a>
-    where
-        T: ExtendsDebugMarkerObjectTagInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDebugMarkerObjectTagInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DebugMarkerObjectTagInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DebugMarkerObjectTagInfoEXT {
@@ -17861,6 +18784,11 @@ impl<'a> ::std::ops::Deref for DebugMarkerMarkerInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DebugMarkerMarkerInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DebugMarkerMarkerInfoEXTBuilder<'a> {
     pub fn marker_name(
         mut self,
@@ -17873,11 +18801,15 @@ impl<'a> DebugMarkerMarkerInfoEXTBuilder<'a> {
         self.inner.color = color;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DebugMarkerMarkerInfoEXTBuilder<'a>
-    where
-        T: ExtendsDebugMarkerMarkerInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDebugMarkerMarkerInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DebugMarkerMarkerInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DebugMarkerMarkerInfoEXT {
@@ -17920,6 +18852,11 @@ impl<'a> ::std::ops::Deref for DedicatedAllocationImageCreateInfoNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DedicatedAllocationImageCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DedicatedAllocationImageCreateInfoNVBuilder<'a> {
     pub fn dedicated_allocation(
         mut self,
@@ -17928,11 +18865,15 @@ impl<'a> DedicatedAllocationImageCreateInfoNVBuilder<'a> {
         self.inner.dedicated_allocation = dedicated_allocation.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DedicatedAllocationImageCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsDedicatedAllocationImageCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDedicatedAllocationImageCreateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DedicatedAllocationImageCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DedicatedAllocationImageCreateInfoNV {
@@ -17975,6 +18916,11 @@ impl<'a> ::std::ops::Deref for DedicatedAllocationBufferCreateInfoNVBuilder<'a> 
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DedicatedAllocationBufferCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DedicatedAllocationBufferCreateInfoNVBuilder<'a> {
     pub fn dedicated_allocation(
         mut self,
@@ -17983,11 +18929,15 @@ impl<'a> DedicatedAllocationBufferCreateInfoNVBuilder<'a> {
         self.inner.dedicated_allocation = dedicated_allocation.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DedicatedAllocationBufferCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsDedicatedAllocationBufferCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDedicatedAllocationBufferCreateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DedicatedAllocationBufferCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DedicatedAllocationBufferCreateInfoNV {
@@ -18032,6 +18982,11 @@ impl<'a> ::std::ops::Deref for DedicatedAllocationMemoryAllocateInfoNVBuilder<'a
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DedicatedAllocationMemoryAllocateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DedicatedAllocationMemoryAllocateInfoNVBuilder<'a> {
     pub fn image(mut self, image: Image) -> DedicatedAllocationMemoryAllocateInfoNVBuilder<'a> {
         self.inner.image = image;
@@ -18041,11 +18996,15 @@ impl<'a> DedicatedAllocationMemoryAllocateInfoNVBuilder<'a> {
         self.inner.buffer = buffer;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DedicatedAllocationMemoryAllocateInfoNVBuilder<'a>
-    where
-        T: ExtendsDedicatedAllocationMemoryAllocateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDedicatedAllocationMemoryAllocateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DedicatedAllocationMemoryAllocateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DedicatedAllocationMemoryAllocateInfoNV {
@@ -18076,6 +19035,11 @@ impl<'a> ::std::ops::Deref for ExternalImageFormatPropertiesNVBuilder<'a> {
     type Target = ExternalImageFormatPropertiesNV;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ExternalImageFormatPropertiesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ExternalImageFormatPropertiesNVBuilder<'a> {
@@ -18147,6 +19111,11 @@ impl<'a> ::std::ops::Deref for ExternalMemoryImageCreateInfoNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExternalMemoryImageCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExternalMemoryImageCreateInfoNVBuilder<'a> {
     pub fn handle_types(
         mut self,
@@ -18155,11 +19124,15 @@ impl<'a> ExternalMemoryImageCreateInfoNVBuilder<'a> {
         self.inner.handle_types = handle_types;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExternalMemoryImageCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsExternalMemoryImageCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExternalMemoryImageCreateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExternalMemoryImageCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExternalMemoryImageCreateInfoNV {
@@ -18202,6 +19175,11 @@ impl<'a> ::std::ops::Deref for ExportMemoryAllocateInfoNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExportMemoryAllocateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExportMemoryAllocateInfoNVBuilder<'a> {
     pub fn handle_types(
         mut self,
@@ -18210,11 +19188,15 @@ impl<'a> ExportMemoryAllocateInfoNVBuilder<'a> {
         self.inner.handle_types = handle_types;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExportMemoryAllocateInfoNVBuilder<'a>
-    where
-        T: ExtendsExportMemoryAllocateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExportMemoryAllocateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExportMemoryAllocateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExportMemoryAllocateInfoNV {
@@ -18259,6 +19241,11 @@ impl<'a> ::std::ops::Deref for ImportMemoryWin32HandleInfoNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImportMemoryWin32HandleInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImportMemoryWin32HandleInfoNVBuilder<'a> {
     pub fn handle_type(
         mut self,
@@ -18271,11 +19258,15 @@ impl<'a> ImportMemoryWin32HandleInfoNVBuilder<'a> {
         self.inner.handle = handle;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImportMemoryWin32HandleInfoNVBuilder<'a>
-    where
-        T: ExtendsImportMemoryWin32HandleInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImportMemoryWin32HandleInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImportMemoryWin32HandleInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImportMemoryWin32HandleInfoNV {
@@ -18320,6 +19311,11 @@ impl<'a> ::std::ops::Deref for ExportMemoryWin32HandleInfoNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExportMemoryWin32HandleInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExportMemoryWin32HandleInfoNVBuilder<'a> {
     pub fn attributes(
         mut self,
@@ -18332,11 +19328,15 @@ impl<'a> ExportMemoryWin32HandleInfoNVBuilder<'a> {
         self.inner.dw_access = dw_access;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExportMemoryWin32HandleInfoNVBuilder<'a>
-    where
-        T: ExtendsExportMemoryWin32HandleInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExportMemoryWin32HandleInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExportMemoryWin32HandleInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExportMemoryWin32HandleInfoNV {
@@ -18391,6 +19391,11 @@ impl<'a> ::std::ops::Deref for Win32KeyedMutexAcquireReleaseInfoNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for Win32KeyedMutexAcquireReleaseInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> Win32KeyedMutexAcquireReleaseInfoNVBuilder<'a> {
     pub fn acquire_syncs(
         mut self,
@@ -18432,11 +19437,15 @@ impl<'a> Win32KeyedMutexAcquireReleaseInfoNVBuilder<'a> {
         self.inner.p_release_keys = release_keys.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> Win32KeyedMutexAcquireReleaseInfoNVBuilder<'a>
-    where
-        T: ExtendsWin32KeyedMutexAcquireReleaseInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsWin32KeyedMutexAcquireReleaseInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> Win32KeyedMutexAcquireReleaseInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> Win32KeyedMutexAcquireReleaseInfoNV {
@@ -18478,6 +19487,11 @@ impl<'a> ::std::ops::Deref for DeviceGeneratedCommandsFeaturesNVXBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceGeneratedCommandsFeaturesNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceGeneratedCommandsFeaturesNVXBuilder<'a> {
     pub fn compute_binding_point_support(
         mut self,
@@ -18486,11 +19500,15 @@ impl<'a> DeviceGeneratedCommandsFeaturesNVXBuilder<'a> {
         self.inner.compute_binding_point_support = compute_binding_point_support.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceGeneratedCommandsFeaturesNVXBuilder<'a>
-    where
-        T: ExtendsDeviceGeneratedCommandsFeaturesNVX,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceGeneratedCommandsFeaturesNVX>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceGeneratedCommandsFeaturesNVXBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceGeneratedCommandsFeaturesNVX {
@@ -18540,6 +19558,11 @@ impl<'a> ::std::ops::Deref for DeviceGeneratedCommandsLimitsNVXBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceGeneratedCommandsLimitsNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceGeneratedCommandsLimitsNVXBuilder<'a> {
     pub fn max_indirect_commands_layout_token_count(
         mut self,
@@ -18580,11 +19603,15 @@ impl<'a> DeviceGeneratedCommandsLimitsNVXBuilder<'a> {
             min_commands_token_buffer_offset_alignment;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceGeneratedCommandsLimitsNVXBuilder<'a>
-    where
-        T: ExtendsDeviceGeneratedCommandsLimitsNVX,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceGeneratedCommandsLimitsNVX>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceGeneratedCommandsLimitsNVXBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceGeneratedCommandsLimitsNVX {
@@ -18614,6 +19641,11 @@ impl<'a> ::std::ops::Deref for IndirectCommandsTokenNVXBuilder<'a> {
     type Target = IndirectCommandsTokenNVX;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for IndirectCommandsTokenNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> IndirectCommandsTokenNVXBuilder<'a> {
@@ -18660,6 +19692,11 @@ impl<'a> ::std::ops::Deref for IndirectCommandsLayoutTokenNVXBuilder<'a> {
     type Target = IndirectCommandsLayoutTokenNVX;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for IndirectCommandsLayoutTokenNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> IndirectCommandsLayoutTokenNVXBuilder<'a> {
@@ -18730,6 +19767,11 @@ impl<'a> ::std::ops::Deref for IndirectCommandsLayoutCreateInfoNVXBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for IndirectCommandsLayoutCreateInfoNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> IndirectCommandsLayoutCreateInfoNVXBuilder<'a> {
     pub fn pipeline_bind_point(
         mut self,
@@ -18753,11 +19795,15 @@ impl<'a> IndirectCommandsLayoutCreateInfoNVXBuilder<'a> {
         self.inner.p_tokens = tokens.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> IndirectCommandsLayoutCreateInfoNVXBuilder<'a>
-    where
-        T: ExtendsIndirectCommandsLayoutCreateInfoNVX,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsIndirectCommandsLayoutCreateInfoNVX>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> IndirectCommandsLayoutCreateInfoNVXBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> IndirectCommandsLayoutCreateInfoNVX {
@@ -18815,6 +19861,11 @@ impl<'a> ::std::ops::Deref for CmdProcessCommandsInfoNVXBuilder<'a> {
     type Target = CmdProcessCommandsInfoNVX;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for CmdProcessCommandsInfoNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> CmdProcessCommandsInfoNVXBuilder<'a> {
@@ -18882,11 +19933,15 @@ impl<'a> CmdProcessCommandsInfoNVXBuilder<'a> {
         self.inner.sequences_index_offset = sequences_index_offset;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> CmdProcessCommandsInfoNVXBuilder<'a>
-    where
-        T: ExtendsCmdProcessCommandsInfoNVX,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsCmdProcessCommandsInfoNVX>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> CmdProcessCommandsInfoNVXBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> CmdProcessCommandsInfoNVX {
@@ -18932,6 +19987,11 @@ impl<'a> ::std::ops::Deref for CmdReserveSpaceForCommandsInfoNVXBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for CmdReserveSpaceForCommandsInfoNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> CmdReserveSpaceForCommandsInfoNVXBuilder<'a> {
     pub fn object_table(
         mut self,
@@ -18954,11 +20014,15 @@ impl<'a> CmdReserveSpaceForCommandsInfoNVXBuilder<'a> {
         self.inner.max_sequences_count = max_sequences_count;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> CmdReserveSpaceForCommandsInfoNVXBuilder<'a>
-    where
-        T: ExtendsCmdReserveSpaceForCommandsInfoNVX,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsCmdReserveSpaceForCommandsInfoNVX>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> CmdReserveSpaceForCommandsInfoNVXBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> CmdReserveSpaceForCommandsInfoNVX {
@@ -19014,6 +20078,11 @@ impl<'a> ::std::ops::Deref for ObjectTableCreateInfoNVXBuilder<'a> {
     type Target = ObjectTableCreateInfoNVX;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ObjectTableCreateInfoNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ObjectTableCreateInfoNVXBuilder<'a> {
@@ -19076,11 +20145,15 @@ impl<'a> ObjectTableCreateInfoNVXBuilder<'a> {
         self.inner.max_pipeline_layouts = max_pipeline_layouts;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ObjectTableCreateInfoNVXBuilder<'a>
-    where
-        T: ExtendsObjectTableCreateInfoNVX,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsObjectTableCreateInfoNVX>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ObjectTableCreateInfoNVXBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ObjectTableCreateInfoNVX {
@@ -19109,6 +20182,11 @@ impl<'a> ::std::ops::Deref for ObjectTableEntryNVXBuilder<'a> {
     type Target = ObjectTableEntryNVX;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ObjectTableEntryNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ObjectTableEntryNVXBuilder<'a> {
@@ -19147,6 +20225,11 @@ impl<'a> ::std::ops::Deref for ObjectTablePipelineEntryNVXBuilder<'a> {
     type Target = ObjectTablePipelineEntryNVX;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ObjectTablePipelineEntryNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ObjectTablePipelineEntryNVXBuilder<'a> {
@@ -19193,6 +20276,11 @@ impl<'a> ::std::ops::Deref for ObjectTableDescriptorSetEntryNVXBuilder<'a> {
     type Target = ObjectTableDescriptorSetEntryNVX;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ObjectTableDescriptorSetEntryNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ObjectTableDescriptorSetEntryNVXBuilder<'a> {
@@ -19250,6 +20338,11 @@ impl<'a> ::std::ops::Deref for ObjectTableVertexBufferEntryNVXBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ObjectTableVertexBufferEntryNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ObjectTableVertexBufferEntryNVXBuilder<'a> {
     pub fn ty(mut self, ty: ObjectEntryTypeNVX) -> ObjectTableVertexBufferEntryNVXBuilder<'a> {
         self.inner.ty = ty;
@@ -19294,6 +20387,11 @@ impl<'a> ::std::ops::Deref for ObjectTableIndexBufferEntryNVXBuilder<'a> {
     type Target = ObjectTableIndexBufferEntryNVX;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ObjectTableIndexBufferEntryNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ObjectTableIndexBufferEntryNVXBuilder<'a> {
@@ -19347,6 +20445,11 @@ impl<'a> ::std::ops::Deref for ObjectTablePushConstantEntryNVXBuilder<'a> {
     type Target = ObjectTablePushConstantEntryNVX;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ObjectTablePushConstantEntryNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ObjectTablePushConstantEntryNVXBuilder<'a> {
@@ -19415,6 +20518,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceFeatures2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceFeatures2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceFeatures2Builder<'a> {
     pub fn features(
         mut self,
@@ -19423,11 +20531,15 @@ impl<'a> PhysicalDeviceFeatures2Builder<'a> {
         self.inner.features = features;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceFeatures2Builder<'a>
-    where
-        T: ExtendsPhysicalDeviceFeatures2,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceFeatures2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceFeatures2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceFeatures2 {
@@ -19469,6 +20581,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceProperties2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceProperties2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceProperties2Builder<'a> {
     pub fn properties(
         mut self,
@@ -19477,11 +20594,15 @@ impl<'a> PhysicalDeviceProperties2Builder<'a> {
         self.inner.properties = properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceProperties2Builder<'a>
-    where
-        T: ExtendsPhysicalDeviceProperties2,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceProperties2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceProperties2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceProperties2 {
@@ -19523,6 +20644,11 @@ impl<'a> ::std::ops::Deref for FormatProperties2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for FormatProperties2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> FormatProperties2Builder<'a> {
     pub fn format_properties(
         mut self,
@@ -19531,11 +20657,15 @@ impl<'a> FormatProperties2Builder<'a> {
         self.inner.format_properties = format_properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> FormatProperties2Builder<'a>
-    where
-        T: ExtendsFormatProperties2,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsFormatProperties2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> FormatProperties2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> FormatProperties2 {
@@ -19577,6 +20707,11 @@ impl<'a> ::std::ops::Deref for ImageFormatProperties2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageFormatProperties2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageFormatProperties2Builder<'a> {
     pub fn image_format_properties(
         mut self,
@@ -19585,11 +20720,15 @@ impl<'a> ImageFormatProperties2Builder<'a> {
         self.inner.image_format_properties = image_format_properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> ImageFormatProperties2Builder<'a>
-    where
-        T: ExtendsImageFormatProperties2,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsImageFormatProperties2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageFormatProperties2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageFormatProperties2 {
@@ -19639,6 +20778,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceImageFormatInfo2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceImageFormatInfo2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceImageFormatInfo2Builder<'a> {
     pub fn format(mut self, format: Format) -> PhysicalDeviceImageFormatInfo2Builder<'a> {
         self.inner.format = format;
@@ -19660,11 +20804,15 @@ impl<'a> PhysicalDeviceImageFormatInfo2Builder<'a> {
         self.inner.flags = flags;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PhysicalDeviceImageFormatInfo2Builder<'a>
-    where
-        T: ExtendsPhysicalDeviceImageFormatInfo2,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPhysicalDeviceImageFormatInfo2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceImageFormatInfo2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceImageFormatInfo2 {
@@ -19706,6 +20854,11 @@ impl<'a> ::std::ops::Deref for QueueFamilyProperties2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for QueueFamilyProperties2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> QueueFamilyProperties2Builder<'a> {
     pub fn queue_family_properties(
         mut self,
@@ -19714,11 +20867,15 @@ impl<'a> QueueFamilyProperties2Builder<'a> {
         self.inner.queue_family_properties = queue_family_properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> QueueFamilyProperties2Builder<'a>
-    where
-        T: ExtendsQueueFamilyProperties2,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsQueueFamilyProperties2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> QueueFamilyProperties2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> QueueFamilyProperties2 {
@@ -19760,6 +20917,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceMemoryProperties2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceMemoryProperties2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceMemoryProperties2Builder<'a> {
     pub fn memory_properties(
         mut self,
@@ -19768,11 +20930,15 @@ impl<'a> PhysicalDeviceMemoryProperties2Builder<'a> {
         self.inner.memory_properties = memory_properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceMemoryProperties2Builder<'a>
-    where
-        T: ExtendsPhysicalDeviceMemoryProperties2,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceMemoryProperties2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceMemoryProperties2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceMemoryProperties2 {
@@ -19814,6 +20980,11 @@ impl<'a> ::std::ops::Deref for SparseImageFormatProperties2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SparseImageFormatProperties2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SparseImageFormatProperties2Builder<'a> {
     pub fn properties(
         mut self,
@@ -19822,11 +20993,15 @@ impl<'a> SparseImageFormatProperties2Builder<'a> {
         self.inner.properties = properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> SparseImageFormatProperties2Builder<'a>
-    where
-        T: ExtendsSparseImageFormatProperties2,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsSparseImageFormatProperties2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SparseImageFormatProperties2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SparseImageFormatProperties2 {
@@ -19876,6 +21051,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceSparseImageFormatInfo2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceSparseImageFormatInfo2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceSparseImageFormatInfo2Builder<'a> {
     pub fn format(mut self, format: Format) -> PhysicalDeviceSparseImageFormatInfo2Builder<'a> {
         self.inner.format = format;
@@ -19906,11 +21086,15 @@ impl<'a> PhysicalDeviceSparseImageFormatInfo2Builder<'a> {
         self.inner.tiling = tiling;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PhysicalDeviceSparseImageFormatInfo2Builder<'a>
-    where
-        T: ExtendsPhysicalDeviceSparseImageFormatInfo2,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPhysicalDeviceSparseImageFormatInfo2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceSparseImageFormatInfo2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceSparseImageFormatInfo2 {
@@ -19953,6 +21137,11 @@ impl<'a> ::std::ops::Deref for PhysicalDevicePushDescriptorPropertiesKHRBuilder<
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDevicePushDescriptorPropertiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDevicePushDescriptorPropertiesKHRBuilder<'a> {
     pub fn max_push_descriptors(
         mut self,
@@ -19961,14 +21150,15 @@ impl<'a> PhysicalDevicePushDescriptorPropertiesKHRBuilder<'a> {
         self.inner.max_push_descriptors = max_push_descriptors;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDevicePushDescriptorPropertiesKHR>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDevicePushDescriptorPropertiesKHRBuilder<'a>
-    where
-        T: ExtendsPhysicalDevicePushDescriptorPropertiesKHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDevicePushDescriptorPropertiesKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDevicePushDescriptorPropertiesKHR {
@@ -19999,6 +21189,11 @@ impl<'a> ::std::ops::Deref for ConformanceVersionKHRBuilder<'a> {
     type Target = ConformanceVersionKHR;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ConformanceVersionKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ConformanceVersionKHRBuilder<'a> {
@@ -20039,10 +21234,10 @@ impl fmt::Debug for PhysicalDeviceDriverPropertiesKHR {
             .field("p_next", &self.p_next)
             .field("driver_id", &self.driver_id)
             .field("driver_name", &unsafe {
-                ::std::ffi::CStr::from_ptr(self.driver_name.as_ptr() as *const i8)
+                ::std::ffi::CStr::from_ptr(self.driver_name.as_ptr() as *const c_char)
             })
             .field("driver_info", &unsafe {
-                ::std::ffi::CStr::from_ptr(self.driver_info.as_ptr() as *const i8)
+                ::std::ffi::CStr::from_ptr(self.driver_info.as_ptr() as *const c_char)
             })
             .field("conformance_version", &self.conformance_version)
             .finish()
@@ -20080,6 +21275,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceDriverPropertiesKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceDriverPropertiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceDriverPropertiesKHRBuilder<'a> {
     pub fn driver_id(
         mut self,
@@ -20109,11 +21309,15 @@ impl<'a> PhysicalDeviceDriverPropertiesKHRBuilder<'a> {
         self.inner.conformance_version = conformance_version;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceDriverPropertiesKHRBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceDriverPropertiesKHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceDriverPropertiesKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceDriverPropertiesKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceDriverPropertiesKHR {
@@ -20158,17 +21362,26 @@ impl<'a> ::std::ops::Deref for PresentRegionsKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PresentRegionsKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PresentRegionsKHRBuilder<'a> {
     pub fn regions(mut self, regions: &'a [PresentRegionKHR]) -> PresentRegionsKHRBuilder<'a> {
         self.inner.swapchain_count = regions.len() as _;
         self.inner.p_regions = regions.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PresentRegionsKHRBuilder<'a>
-    where
-        T: ExtendsPresentRegionsKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPresentRegionsKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PresentRegionsKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PresentRegionsKHR {
@@ -20207,6 +21420,11 @@ impl<'a> ::std::ops::Deref for PresentRegionKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PresentRegionKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PresentRegionKHRBuilder<'a> {
     pub fn rectangles(mut self, rectangles: &'a [RectLayerKHR]) -> PresentRegionKHRBuilder<'a> {
         self.inner.rectangle_count = rectangles.len() as _;
@@ -20240,6 +21458,11 @@ impl<'a> ::std::ops::Deref for RectLayerKHRBuilder<'a> {
     type Target = RectLayerKHR;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for RectLayerKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> RectLayerKHRBuilder<'a> {
@@ -20298,6 +21521,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceVariablePointerFeaturesBuilder<'a> 
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceVariablePointerFeaturesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceVariablePointerFeaturesBuilder<'a> {
     pub fn variable_pointers_storage_buffer(
         mut self,
@@ -20313,11 +21541,15 @@ impl<'a> PhysicalDeviceVariablePointerFeaturesBuilder<'a> {
         self.inner.variable_pointers = variable_pointers.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceVariablePointerFeaturesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceVariablePointerFeatures,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceVariablePointerFeatures>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceVariablePointerFeaturesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceVariablePointerFeatures {
@@ -20347,6 +21579,11 @@ impl<'a> ::std::ops::Deref for ExternalMemoryPropertiesBuilder<'a> {
     type Target = ExternalMemoryProperties;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ExternalMemoryPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ExternalMemoryPropertiesBuilder<'a> {
@@ -20411,6 +21648,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceExternalImageFormatInfoBuilder<'a> 
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceExternalImageFormatInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceExternalImageFormatInfoBuilder<'a> {
     pub fn handle_type(
         mut self,
@@ -20419,11 +21661,15 @@ impl<'a> PhysicalDeviceExternalImageFormatInfoBuilder<'a> {
         self.inner.handle_type = handle_type;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PhysicalDeviceExternalImageFormatInfoBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceExternalImageFormatInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPhysicalDeviceExternalImageFormatInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceExternalImageFormatInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceExternalImageFormatInfo {
@@ -20466,6 +21712,11 @@ impl<'a> ::std::ops::Deref for ExternalImageFormatPropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExternalImageFormatPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExternalImageFormatPropertiesBuilder<'a> {
     pub fn external_memory_properties(
         mut self,
@@ -20474,11 +21725,15 @@ impl<'a> ExternalImageFormatPropertiesBuilder<'a> {
         self.inner.external_memory_properties = external_memory_properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> ExternalImageFormatPropertiesBuilder<'a>
-    where
-        T: ExtendsExternalImageFormatProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsExternalImageFormatProperties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExternalImageFormatPropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExternalImageFormatProperties {
@@ -20524,6 +21779,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceExternalBufferInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceExternalBufferInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceExternalBufferInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -20543,11 +21803,15 @@ impl<'a> PhysicalDeviceExternalBufferInfoBuilder<'a> {
         self.inner.handle_type = handle_type;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PhysicalDeviceExternalBufferInfoBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceExternalBufferInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPhysicalDeviceExternalBufferInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceExternalBufferInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceExternalBufferInfo {
@@ -20589,6 +21853,11 @@ impl<'a> ::std::ops::Deref for ExternalBufferPropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExternalBufferPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExternalBufferPropertiesBuilder<'a> {
     pub fn external_memory_properties(
         mut self,
@@ -20597,11 +21866,15 @@ impl<'a> ExternalBufferPropertiesBuilder<'a> {
         self.inner.external_memory_properties = external_memory_properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> ExternalBufferPropertiesBuilder<'a>
-    where
-        T: ExtendsExternalBufferProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsExternalBufferProperties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExternalBufferPropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExternalBufferProperties {
@@ -20652,6 +21925,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceIDPropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceIDPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceIDPropertiesBuilder<'a> {
     pub fn device_uuid(
         mut self,
@@ -20688,11 +21966,15 @@ impl<'a> PhysicalDeviceIDPropertiesBuilder<'a> {
         self.inner.device_luid_valid = device_luid_valid.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceIDPropertiesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceIDProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceIDProperties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceIDPropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceIDProperties {
@@ -20735,6 +22017,11 @@ impl<'a> ::std::ops::Deref for ExternalMemoryImageCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExternalMemoryImageCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExternalMemoryImageCreateInfoBuilder<'a> {
     pub fn handle_types(
         mut self,
@@ -20743,11 +22030,15 @@ impl<'a> ExternalMemoryImageCreateInfoBuilder<'a> {
         self.inner.handle_types = handle_types;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExternalMemoryImageCreateInfoBuilder<'a>
-    where
-        T: ExtendsExternalMemoryImageCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExternalMemoryImageCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExternalMemoryImageCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExternalMemoryImageCreateInfo {
@@ -20790,6 +22081,11 @@ impl<'a> ::std::ops::Deref for ExternalMemoryBufferCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExternalMemoryBufferCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExternalMemoryBufferCreateInfoBuilder<'a> {
     pub fn handle_types(
         mut self,
@@ -20798,11 +22094,15 @@ impl<'a> ExternalMemoryBufferCreateInfoBuilder<'a> {
         self.inner.handle_types = handle_types;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExternalMemoryBufferCreateInfoBuilder<'a>
-    where
-        T: ExtendsExternalMemoryBufferCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExternalMemoryBufferCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExternalMemoryBufferCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExternalMemoryBufferCreateInfo {
@@ -20845,6 +22145,11 @@ impl<'a> ::std::ops::Deref for ExportMemoryAllocateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExportMemoryAllocateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExportMemoryAllocateInfoBuilder<'a> {
     pub fn handle_types(
         mut self,
@@ -20853,11 +22158,15 @@ impl<'a> ExportMemoryAllocateInfoBuilder<'a> {
         self.inner.handle_types = handle_types;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExportMemoryAllocateInfoBuilder<'a>
-    where
-        T: ExtendsExportMemoryAllocateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExportMemoryAllocateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExportMemoryAllocateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExportMemoryAllocateInfo {
@@ -20904,6 +22213,11 @@ impl<'a> ::std::ops::Deref for ImportMemoryWin32HandleInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImportMemoryWin32HandleInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImportMemoryWin32HandleInfoKHRBuilder<'a> {
     pub fn handle_type(
         mut self,
@@ -20920,11 +22234,15 @@ impl<'a> ImportMemoryWin32HandleInfoKHRBuilder<'a> {
         self.inner.name = name;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImportMemoryWin32HandleInfoKHRBuilder<'a>
-    where
-        T: ExtendsImportMemoryWin32HandleInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImportMemoryWin32HandleInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImportMemoryWin32HandleInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImportMemoryWin32HandleInfoKHR {
@@ -20971,6 +22289,11 @@ impl<'a> ::std::ops::Deref for ExportMemoryWin32HandleInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExportMemoryWin32HandleInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExportMemoryWin32HandleInfoKHRBuilder<'a> {
     pub fn attributes(
         mut self,
@@ -20987,11 +22310,15 @@ impl<'a> ExportMemoryWin32HandleInfoKHRBuilder<'a> {
         self.inner.name = name;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExportMemoryWin32HandleInfoKHRBuilder<'a>
-    where
-        T: ExtendsExportMemoryWin32HandleInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExportMemoryWin32HandleInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExportMemoryWin32HandleInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExportMemoryWin32HandleInfoKHR {
@@ -21033,6 +22360,11 @@ impl<'a> ::std::ops::Deref for MemoryWin32HandlePropertiesKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryWin32HandlePropertiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryWin32HandlePropertiesKHRBuilder<'a> {
     pub fn memory_type_bits(
         mut self,
@@ -21041,11 +22373,15 @@ impl<'a> MemoryWin32HandlePropertiesKHRBuilder<'a> {
         self.inner.memory_type_bits = memory_type_bits;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> MemoryWin32HandlePropertiesKHRBuilder<'a>
-    where
-        T: ExtendsMemoryWin32HandlePropertiesKHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsMemoryWin32HandlePropertiesKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryWin32HandlePropertiesKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryWin32HandlePropertiesKHR {
@@ -21089,6 +22425,11 @@ impl<'a> ::std::ops::Deref for MemoryGetWin32HandleInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryGetWin32HandleInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryGetWin32HandleInfoKHRBuilder<'a> {
     pub fn memory(mut self, memory: DeviceMemory) -> MemoryGetWin32HandleInfoKHRBuilder<'a> {
         self.inner.memory = memory;
@@ -21101,11 +22442,15 @@ impl<'a> MemoryGetWin32HandleInfoKHRBuilder<'a> {
         self.inner.handle_type = handle_type;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> MemoryGetWin32HandleInfoKHRBuilder<'a>
-    where
-        T: ExtendsMemoryGetWin32HandleInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsMemoryGetWin32HandleInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryGetWin32HandleInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryGetWin32HandleInfoKHR {
@@ -21150,6 +22495,11 @@ impl<'a> ::std::ops::Deref for ImportMemoryFdInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImportMemoryFdInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImportMemoryFdInfoKHRBuilder<'a> {
     pub fn handle_type(
         mut self,
@@ -21162,11 +22512,15 @@ impl<'a> ImportMemoryFdInfoKHRBuilder<'a> {
         self.inner.fd = fd;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImportMemoryFdInfoKHRBuilder<'a>
-    where
-        T: ExtendsImportMemoryFdInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImportMemoryFdInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImportMemoryFdInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImportMemoryFdInfoKHR {
@@ -21208,16 +22562,25 @@ impl<'a> ::std::ops::Deref for MemoryFdPropertiesKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryFdPropertiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryFdPropertiesKHRBuilder<'a> {
     pub fn memory_type_bits(mut self, memory_type_bits: u32) -> MemoryFdPropertiesKHRBuilder<'a> {
         self.inner.memory_type_bits = memory_type_bits;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> MemoryFdPropertiesKHRBuilder<'a>
-    where
-        T: ExtendsMemoryFdPropertiesKHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsMemoryFdPropertiesKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryFdPropertiesKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryFdPropertiesKHR {
@@ -21261,6 +22624,11 @@ impl<'a> ::std::ops::Deref for MemoryGetFdInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryGetFdInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryGetFdInfoKHRBuilder<'a> {
     pub fn memory(mut self, memory: DeviceMemory) -> MemoryGetFdInfoKHRBuilder<'a> {
         self.inner.memory = memory;
@@ -21273,11 +22641,15 @@ impl<'a> MemoryGetFdInfoKHRBuilder<'a> {
         self.inner.handle_type = handle_type;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> MemoryGetFdInfoKHRBuilder<'a>
-    where
-        T: ExtendsMemoryGetFdInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsMemoryGetFdInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryGetFdInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryGetFdInfoKHR {
@@ -21332,6 +22704,11 @@ impl<'a> ::std::ops::Deref for Win32KeyedMutexAcquireReleaseInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for Win32KeyedMutexAcquireReleaseInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> Win32KeyedMutexAcquireReleaseInfoKHRBuilder<'a> {
     pub fn acquire_syncs(
         mut self,
@@ -21373,11 +22750,15 @@ impl<'a> Win32KeyedMutexAcquireReleaseInfoKHRBuilder<'a> {
         self.inner.p_release_keys = release_keys.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> Win32KeyedMutexAcquireReleaseInfoKHRBuilder<'a>
-    where
-        T: ExtendsWin32KeyedMutexAcquireReleaseInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsWin32KeyedMutexAcquireReleaseInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> Win32KeyedMutexAcquireReleaseInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> Win32KeyedMutexAcquireReleaseInfoKHR {
@@ -21419,6 +22800,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceExternalSemaphoreInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceExternalSemaphoreInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceExternalSemaphoreInfoBuilder<'a> {
     pub fn handle_type(
         mut self,
@@ -21427,11 +22813,15 @@ impl<'a> PhysicalDeviceExternalSemaphoreInfoBuilder<'a> {
         self.inner.handle_type = handle_type;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PhysicalDeviceExternalSemaphoreInfoBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceExternalSemaphoreInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPhysicalDeviceExternalSemaphoreInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceExternalSemaphoreInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceExternalSemaphoreInfo {
@@ -21477,6 +22867,11 @@ impl<'a> ::std::ops::Deref for ExternalSemaphorePropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExternalSemaphorePropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExternalSemaphorePropertiesBuilder<'a> {
     pub fn export_from_imported_handle_types(
         mut self,
@@ -21499,11 +22894,15 @@ impl<'a> ExternalSemaphorePropertiesBuilder<'a> {
         self.inner.external_semaphore_features = external_semaphore_features;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> ExternalSemaphorePropertiesBuilder<'a>
-    where
-        T: ExtendsExternalSemaphoreProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsExternalSemaphoreProperties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExternalSemaphorePropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExternalSemaphoreProperties {
@@ -21546,6 +22945,11 @@ impl<'a> ::std::ops::Deref for ExportSemaphoreCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExportSemaphoreCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExportSemaphoreCreateInfoBuilder<'a> {
     pub fn handle_types(
         mut self,
@@ -21554,11 +22958,15 @@ impl<'a> ExportSemaphoreCreateInfoBuilder<'a> {
         self.inner.handle_types = handle_types;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExportSemaphoreCreateInfoBuilder<'a>
-    where
-        T: ExtendsExportSemaphoreCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExportSemaphoreCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExportSemaphoreCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExportSemaphoreCreateInfo {
@@ -21608,6 +23016,11 @@ impl<'a> ::std::ops::Deref for ImportSemaphoreWin32HandleInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImportSemaphoreWin32HandleInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImportSemaphoreWin32HandleInfoKHRBuilder<'a> {
     pub fn semaphore(
         mut self,
@@ -21638,11 +23051,15 @@ impl<'a> ImportSemaphoreWin32HandleInfoKHRBuilder<'a> {
         self.inner.name = name;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImportSemaphoreWin32HandleInfoKHRBuilder<'a>
-    where
-        T: ExtendsImportSemaphoreWin32HandleInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImportSemaphoreWin32HandleInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImportSemaphoreWin32HandleInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImportSemaphoreWin32HandleInfoKHR {
@@ -21689,6 +23106,11 @@ impl<'a> ::std::ops::Deref for ExportSemaphoreWin32HandleInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExportSemaphoreWin32HandleInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExportSemaphoreWin32HandleInfoKHRBuilder<'a> {
     pub fn attributes(
         mut self,
@@ -21705,11 +23127,15 @@ impl<'a> ExportSemaphoreWin32HandleInfoKHRBuilder<'a> {
         self.inner.name = name;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExportSemaphoreWin32HandleInfoKHRBuilder<'a>
-    where
-        T: ExtendsExportSemaphoreWin32HandleInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExportSemaphoreWin32HandleInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExportSemaphoreWin32HandleInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExportSemaphoreWin32HandleInfoKHR {
@@ -21758,6 +23184,11 @@ impl<'a> ::std::ops::Deref for D3D12FenceSubmitInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for D3D12FenceSubmitInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> D3D12FenceSubmitInfoKHRBuilder<'a> {
     pub fn wait_semaphore_values(
         mut self,
@@ -21775,11 +23206,15 @@ impl<'a> D3D12FenceSubmitInfoKHRBuilder<'a> {
         self.inner.p_signal_semaphore_values = signal_semaphore_values.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> D3D12FenceSubmitInfoKHRBuilder<'a>
-    where
-        T: ExtendsD3D12FenceSubmitInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsD3D12FenceSubmitInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> D3D12FenceSubmitInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> D3D12FenceSubmitInfoKHR {
@@ -21823,6 +23258,11 @@ impl<'a> ::std::ops::Deref for SemaphoreGetWin32HandleInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SemaphoreGetWin32HandleInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SemaphoreGetWin32HandleInfoKHRBuilder<'a> {
     pub fn semaphore(mut self, semaphore: Semaphore) -> SemaphoreGetWin32HandleInfoKHRBuilder<'a> {
         self.inner.semaphore = semaphore;
@@ -21835,11 +23275,15 @@ impl<'a> SemaphoreGetWin32HandleInfoKHRBuilder<'a> {
         self.inner.handle_type = handle_type;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SemaphoreGetWin32HandleInfoKHRBuilder<'a>
-    where
-        T: ExtendsSemaphoreGetWin32HandleInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSemaphoreGetWin32HandleInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SemaphoreGetWin32HandleInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SemaphoreGetWin32HandleInfoKHR {
@@ -21887,6 +23331,11 @@ impl<'a> ::std::ops::Deref for ImportSemaphoreFdInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImportSemaphoreFdInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImportSemaphoreFdInfoKHRBuilder<'a> {
     pub fn semaphore(mut self, semaphore: Semaphore) -> ImportSemaphoreFdInfoKHRBuilder<'a> {
         self.inner.semaphore = semaphore;
@@ -21907,11 +23356,15 @@ impl<'a> ImportSemaphoreFdInfoKHRBuilder<'a> {
         self.inner.fd = fd;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImportSemaphoreFdInfoKHRBuilder<'a>
-    where
-        T: ExtendsImportSemaphoreFdInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImportSemaphoreFdInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImportSemaphoreFdInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImportSemaphoreFdInfoKHR {
@@ -21955,6 +23408,11 @@ impl<'a> ::std::ops::Deref for SemaphoreGetFdInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SemaphoreGetFdInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SemaphoreGetFdInfoKHRBuilder<'a> {
     pub fn semaphore(mut self, semaphore: Semaphore) -> SemaphoreGetFdInfoKHRBuilder<'a> {
         self.inner.semaphore = semaphore;
@@ -21967,11 +23425,15 @@ impl<'a> SemaphoreGetFdInfoKHRBuilder<'a> {
         self.inner.handle_type = handle_type;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SemaphoreGetFdInfoKHRBuilder<'a>
-    where
-        T: ExtendsSemaphoreGetFdInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSemaphoreGetFdInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SemaphoreGetFdInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SemaphoreGetFdInfoKHR {
@@ -22013,6 +23475,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceExternalFenceInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceExternalFenceInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceExternalFenceInfoBuilder<'a> {
     pub fn handle_type(
         mut self,
@@ -22021,11 +23488,15 @@ impl<'a> PhysicalDeviceExternalFenceInfoBuilder<'a> {
         self.inner.handle_type = handle_type;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PhysicalDeviceExternalFenceInfoBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceExternalFenceInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPhysicalDeviceExternalFenceInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceExternalFenceInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceExternalFenceInfo {
@@ -22071,6 +23542,11 @@ impl<'a> ::std::ops::Deref for ExternalFencePropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExternalFencePropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExternalFencePropertiesBuilder<'a> {
     pub fn export_from_imported_handle_types(
         mut self,
@@ -22093,11 +23569,15 @@ impl<'a> ExternalFencePropertiesBuilder<'a> {
         self.inner.external_fence_features = external_fence_features;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> ExternalFencePropertiesBuilder<'a>
-    where
-        T: ExtendsExternalFenceProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsExternalFenceProperties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExternalFencePropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExternalFenceProperties {
@@ -22140,6 +23620,11 @@ impl<'a> ::std::ops::Deref for ExportFenceCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExportFenceCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExportFenceCreateInfoBuilder<'a> {
     pub fn handle_types(
         mut self,
@@ -22148,11 +23633,15 @@ impl<'a> ExportFenceCreateInfoBuilder<'a> {
         self.inner.handle_types = handle_types;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExportFenceCreateInfoBuilder<'a>
-    where
-        T: ExtendsExportFenceCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExportFenceCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExportFenceCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExportFenceCreateInfo {
@@ -22202,6 +23691,11 @@ impl<'a> ::std::ops::Deref for ImportFenceWin32HandleInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImportFenceWin32HandleInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImportFenceWin32HandleInfoKHRBuilder<'a> {
     pub fn fence(mut self, fence: Fence) -> ImportFenceWin32HandleInfoKHRBuilder<'a> {
         self.inner.fence = fence;
@@ -22226,11 +23720,15 @@ impl<'a> ImportFenceWin32HandleInfoKHRBuilder<'a> {
         self.inner.name = name;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImportFenceWin32HandleInfoKHRBuilder<'a>
-    where
-        T: ExtendsImportFenceWin32HandleInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImportFenceWin32HandleInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImportFenceWin32HandleInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImportFenceWin32HandleInfoKHR {
@@ -22277,6 +23775,11 @@ impl<'a> ::std::ops::Deref for ExportFenceWin32HandleInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExportFenceWin32HandleInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExportFenceWin32HandleInfoKHRBuilder<'a> {
     pub fn attributes(
         mut self,
@@ -22293,11 +23796,15 @@ impl<'a> ExportFenceWin32HandleInfoKHRBuilder<'a> {
         self.inner.name = name;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ExportFenceWin32HandleInfoKHRBuilder<'a>
-    where
-        T: ExtendsExportFenceWin32HandleInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsExportFenceWin32HandleInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExportFenceWin32HandleInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExportFenceWin32HandleInfoKHR {
@@ -22341,6 +23848,11 @@ impl<'a> ::std::ops::Deref for FenceGetWin32HandleInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for FenceGetWin32HandleInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> FenceGetWin32HandleInfoKHRBuilder<'a> {
     pub fn fence(mut self, fence: Fence) -> FenceGetWin32HandleInfoKHRBuilder<'a> {
         self.inner.fence = fence;
@@ -22353,11 +23865,15 @@ impl<'a> FenceGetWin32HandleInfoKHRBuilder<'a> {
         self.inner.handle_type = handle_type;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> FenceGetWin32HandleInfoKHRBuilder<'a>
-    where
-        T: ExtendsFenceGetWin32HandleInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsFenceGetWin32HandleInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> FenceGetWin32HandleInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> FenceGetWin32HandleInfoKHR {
@@ -22405,6 +23921,11 @@ impl<'a> ::std::ops::Deref for ImportFenceFdInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImportFenceFdInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImportFenceFdInfoKHRBuilder<'a> {
     pub fn fence(mut self, fence: Fence) -> ImportFenceFdInfoKHRBuilder<'a> {
         self.inner.fence = fence;
@@ -22425,11 +23946,15 @@ impl<'a> ImportFenceFdInfoKHRBuilder<'a> {
         self.inner.fd = fd;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImportFenceFdInfoKHRBuilder<'a>
-    where
-        T: ExtendsImportFenceFdInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImportFenceFdInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImportFenceFdInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImportFenceFdInfoKHR {
@@ -22473,6 +23998,11 @@ impl<'a> ::std::ops::Deref for FenceGetFdInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for FenceGetFdInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> FenceGetFdInfoKHRBuilder<'a> {
     pub fn fence(mut self, fence: Fence) -> FenceGetFdInfoKHRBuilder<'a> {
         self.inner.fence = fence;
@@ -22485,11 +24015,15 @@ impl<'a> FenceGetFdInfoKHRBuilder<'a> {
         self.inner.handle_type = handle_type;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> FenceGetFdInfoKHRBuilder<'a>
-    where
-        T: ExtendsFenceGetFdInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsFenceGetFdInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> FenceGetFdInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> FenceGetFdInfoKHR {
@@ -22537,6 +24071,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceMultiviewFeaturesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceMultiviewFeaturesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceMultiviewFeaturesBuilder<'a> {
     pub fn multiview(mut self, multiview: bool) -> PhysicalDeviceMultiviewFeaturesBuilder<'a> {
         self.inner.multiview = multiview.into();
@@ -22556,11 +24095,15 @@ impl<'a> PhysicalDeviceMultiviewFeaturesBuilder<'a> {
         self.inner.multiview_tessellation_shader = multiview_tessellation_shader.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceMultiviewFeaturesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceMultiviewFeatures,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceMultiviewFeatures>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceMultiviewFeaturesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceMultiviewFeatures {
@@ -22605,6 +24148,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceMultiviewPropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceMultiviewPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceMultiviewPropertiesBuilder<'a> {
     pub fn max_multiview_view_count(
         mut self,
@@ -22620,11 +24168,15 @@ impl<'a> PhysicalDeviceMultiviewPropertiesBuilder<'a> {
         self.inner.max_multiview_instance_index = max_multiview_instance_index;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceMultiviewPropertiesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceMultiviewProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceMultiviewProperties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceMultiviewPropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceMultiviewProperties {
@@ -22677,6 +24229,11 @@ impl<'a> ::std::ops::Deref for RenderPassMultiviewCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for RenderPassMultiviewCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> RenderPassMultiviewCreateInfoBuilder<'a> {
     pub fn view_masks(mut self, view_masks: &'a [u32]) -> RenderPassMultiviewCreateInfoBuilder<'a> {
         self.inner.subpass_count = view_masks.len() as _;
@@ -22699,11 +24256,15 @@ impl<'a> RenderPassMultiviewCreateInfoBuilder<'a> {
         self.inner.p_correlation_masks = correlation_masks.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> RenderPassMultiviewCreateInfoBuilder<'a>
-    where
-        T: ExtendsRenderPassMultiviewCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsRenderPassMultiviewCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> RenderPassMultiviewCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> RenderPassMultiviewCreateInfo {
@@ -22763,6 +24324,11 @@ impl<'a> ::std::ops::Deref for SurfaceCapabilities2EXTBuilder<'a> {
     type Target = SurfaceCapabilities2EXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SurfaceCapabilities2EXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SurfaceCapabilities2EXTBuilder<'a> {
@@ -22837,11 +24403,15 @@ impl<'a> SurfaceCapabilities2EXTBuilder<'a> {
         self.inner.supported_surface_counters = supported_surface_counters;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> SurfaceCapabilities2EXTBuilder<'a>
-    where
-        T: ExtendsSurfaceCapabilities2EXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsSurfaceCapabilities2EXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SurfaceCapabilities2EXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SurfaceCapabilities2EXT {
@@ -22883,6 +24453,11 @@ impl<'a> ::std::ops::Deref for DisplayPowerInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayPowerInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayPowerInfoEXTBuilder<'a> {
     pub fn power_state(
         mut self,
@@ -22891,11 +24466,15 @@ impl<'a> DisplayPowerInfoEXTBuilder<'a> {
         self.inner.power_state = power_state;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DisplayPowerInfoEXTBuilder<'a>
-    where
-        T: ExtendsDisplayPowerInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDisplayPowerInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DisplayPowerInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DisplayPowerInfoEXT {
@@ -22937,6 +24516,11 @@ impl<'a> ::std::ops::Deref for DeviceEventInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceEventInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceEventInfoEXTBuilder<'a> {
     pub fn device_event(
         mut self,
@@ -22945,11 +24529,15 @@ impl<'a> DeviceEventInfoEXTBuilder<'a> {
         self.inner.device_event = device_event;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceEventInfoEXTBuilder<'a>
-    where
-        T: ExtendsDeviceEventInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceEventInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceEventInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceEventInfoEXT {
@@ -22991,6 +24579,11 @@ impl<'a> ::std::ops::Deref for DisplayEventInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayEventInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayEventInfoEXTBuilder<'a> {
     pub fn display_event(
         mut self,
@@ -22999,11 +24592,15 @@ impl<'a> DisplayEventInfoEXTBuilder<'a> {
         self.inner.display_event = display_event;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DisplayEventInfoEXTBuilder<'a>
-    where
-        T: ExtendsDisplayEventInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDisplayEventInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DisplayEventInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DisplayEventInfoEXT {
@@ -23046,6 +24643,11 @@ impl<'a> ::std::ops::Deref for SwapchainCounterCreateInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SwapchainCounterCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SwapchainCounterCreateInfoEXTBuilder<'a> {
     pub fn surface_counters(
         mut self,
@@ -23054,11 +24656,15 @@ impl<'a> SwapchainCounterCreateInfoEXTBuilder<'a> {
         self.inner.surface_counters = surface_counters;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SwapchainCounterCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsSwapchainCounterCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSwapchainCounterCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SwapchainCounterCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SwapchainCounterCreateInfoEXT {
@@ -23104,6 +24710,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceGroupPropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceGroupPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceGroupPropertiesBuilder<'a> {
     pub fn physical_device_count(
         mut self,
@@ -23126,11 +24737,15 @@ impl<'a> PhysicalDeviceGroupPropertiesBuilder<'a> {
         self.inner.subset_allocation = subset_allocation.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceGroupPropertiesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceGroupProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceGroupProperties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceGroupPropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceGroupProperties {
@@ -23175,6 +24790,11 @@ impl<'a> ::std::ops::Deref for MemoryAllocateFlagsInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryAllocateFlagsInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryAllocateFlagsInfoBuilder<'a> {
     pub fn flags(mut self, flags: MemoryAllocateFlags) -> MemoryAllocateFlagsInfoBuilder<'a> {
         self.inner.flags = flags;
@@ -23184,11 +24804,15 @@ impl<'a> MemoryAllocateFlagsInfoBuilder<'a> {
         self.inner.device_mask = device_mask;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> MemoryAllocateFlagsInfoBuilder<'a>
-    where
-        T: ExtendsMemoryAllocateFlagsInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsMemoryAllocateFlagsInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryAllocateFlagsInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryAllocateFlagsInfo {
@@ -23234,6 +24858,11 @@ impl<'a> ::std::ops::Deref for BindBufferMemoryInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BindBufferMemoryInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BindBufferMemoryInfoBuilder<'a> {
     pub fn buffer(mut self, buffer: Buffer) -> BindBufferMemoryInfoBuilder<'a> {
         self.inner.buffer = buffer;
@@ -23247,11 +24876,15 @@ impl<'a> BindBufferMemoryInfoBuilder<'a> {
         self.inner.memory_offset = memory_offset;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BindBufferMemoryInfoBuilder<'a>
-    where
-        T: ExtendsBindBufferMemoryInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBindBufferMemoryInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BindBufferMemoryInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BindBufferMemoryInfo {
@@ -23296,6 +24929,11 @@ impl<'a> ::std::ops::Deref for BindBufferMemoryDeviceGroupInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BindBufferMemoryDeviceGroupInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BindBufferMemoryDeviceGroupInfoBuilder<'a> {
     pub fn device_indices(
         mut self,
@@ -23305,11 +24943,15 @@ impl<'a> BindBufferMemoryDeviceGroupInfoBuilder<'a> {
         self.inner.p_device_indices = device_indices.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BindBufferMemoryDeviceGroupInfoBuilder<'a>
-    where
-        T: ExtendsBindBufferMemoryDeviceGroupInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBindBufferMemoryDeviceGroupInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BindBufferMemoryDeviceGroupInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BindBufferMemoryDeviceGroupInfo {
@@ -23355,6 +24997,11 @@ impl<'a> ::std::ops::Deref for BindImageMemoryInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BindImageMemoryInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BindImageMemoryInfoBuilder<'a> {
     pub fn image(mut self, image: Image) -> BindImageMemoryInfoBuilder<'a> {
         self.inner.image = image;
@@ -23368,11 +25015,15 @@ impl<'a> BindImageMemoryInfoBuilder<'a> {
         self.inner.memory_offset = memory_offset;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BindImageMemoryInfoBuilder<'a>
-    where
-        T: ExtendsBindImageMemoryInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBindImageMemoryInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BindImageMemoryInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BindImageMemoryInfo {
@@ -23421,6 +25072,11 @@ impl<'a> ::std::ops::Deref for BindImageMemoryDeviceGroupInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BindImageMemoryDeviceGroupInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BindImageMemoryDeviceGroupInfoBuilder<'a> {
     pub fn device_indices(
         mut self,
@@ -23438,11 +25094,15 @@ impl<'a> BindImageMemoryDeviceGroupInfoBuilder<'a> {
         self.inner.p_split_instance_bind_regions = split_instance_bind_regions.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BindImageMemoryDeviceGroupInfoBuilder<'a>
-    where
-        T: ExtendsBindImageMemoryDeviceGroupInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBindImageMemoryDeviceGroupInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BindImageMemoryDeviceGroupInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BindImageMemoryDeviceGroupInfo {
@@ -23489,6 +25149,11 @@ impl<'a> ::std::ops::Deref for DeviceGroupRenderPassBeginInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceGroupRenderPassBeginInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceGroupRenderPassBeginInfoBuilder<'a> {
     pub fn device_mask(mut self, device_mask: u32) -> DeviceGroupRenderPassBeginInfoBuilder<'a> {
         self.inner.device_mask = device_mask;
@@ -23502,11 +25167,15 @@ impl<'a> DeviceGroupRenderPassBeginInfoBuilder<'a> {
         self.inner.p_device_render_areas = device_render_areas.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceGroupRenderPassBeginInfoBuilder<'a>
-    where
-        T: ExtendsDeviceGroupRenderPassBeginInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceGroupRenderPassBeginInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceGroupRenderPassBeginInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceGroupRenderPassBeginInfo {
@@ -23549,16 +25218,25 @@ impl<'a> ::std::ops::Deref for DeviceGroupCommandBufferBeginInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceGroupCommandBufferBeginInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceGroupCommandBufferBeginInfoBuilder<'a> {
     pub fn device_mask(mut self, device_mask: u32) -> DeviceGroupCommandBufferBeginInfoBuilder<'a> {
         self.inner.device_mask = device_mask;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceGroupCommandBufferBeginInfoBuilder<'a>
-    where
-        T: ExtendsDeviceGroupCommandBufferBeginInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceGroupCommandBufferBeginInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceGroupCommandBufferBeginInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceGroupCommandBufferBeginInfo {
@@ -23611,6 +25289,11 @@ impl<'a> ::std::ops::Deref for DeviceGroupSubmitInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceGroupSubmitInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceGroupSubmitInfoBuilder<'a> {
     pub fn wait_semaphore_device_indices(
         mut self,
@@ -23636,11 +25319,15 @@ impl<'a> DeviceGroupSubmitInfoBuilder<'a> {
         self.inner.p_signal_semaphore_device_indices = signal_semaphore_device_indices.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceGroupSubmitInfoBuilder<'a>
-    where
-        T: ExtendsDeviceGroupSubmitInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceGroupSubmitInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceGroupSubmitInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceGroupSubmitInfo {
@@ -23685,6 +25372,11 @@ impl<'a> ::std::ops::Deref for DeviceGroupBindSparseInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceGroupBindSparseInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceGroupBindSparseInfoBuilder<'a> {
     pub fn resource_device_index(
         mut self,
@@ -23700,11 +25392,15 @@ impl<'a> DeviceGroupBindSparseInfoBuilder<'a> {
         self.inner.memory_device_index = memory_device_index;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceGroupBindSparseInfoBuilder<'a>
-    where
-        T: ExtendsDeviceGroupBindSparseInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceGroupBindSparseInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceGroupBindSparseInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceGroupBindSparseInfo {
@@ -23748,6 +25444,11 @@ impl<'a> ::std::ops::Deref for DeviceGroupPresentCapabilitiesKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceGroupPresentCapabilitiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceGroupPresentCapabilitiesKHRBuilder<'a> {
     pub fn present_mask(
         mut self,
@@ -23763,11 +25464,15 @@ impl<'a> DeviceGroupPresentCapabilitiesKHRBuilder<'a> {
         self.inner.modes = modes;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceGroupPresentCapabilitiesKHRBuilder<'a>
-    where
-        T: ExtendsDeviceGroupPresentCapabilitiesKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceGroupPresentCapabilitiesKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceGroupPresentCapabilitiesKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceGroupPresentCapabilitiesKHR {
@@ -23810,16 +25515,25 @@ impl<'a> ::std::ops::Deref for ImageSwapchainCreateInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageSwapchainCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageSwapchainCreateInfoKHRBuilder<'a> {
     pub fn swapchain(mut self, swapchain: SwapchainKHR) -> ImageSwapchainCreateInfoKHRBuilder<'a> {
         self.inner.swapchain = swapchain;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageSwapchainCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsImageSwapchainCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageSwapchainCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageSwapchainCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageSwapchainCreateInfoKHR {
@@ -23864,6 +25578,11 @@ impl<'a> ::std::ops::Deref for BindImageMemorySwapchainInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BindImageMemorySwapchainInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BindImageMemorySwapchainInfoKHRBuilder<'a> {
     pub fn swapchain(
         mut self,
@@ -23876,11 +25595,15 @@ impl<'a> BindImageMemorySwapchainInfoKHRBuilder<'a> {
         self.inner.image_index = image_index;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BindImageMemorySwapchainInfoKHRBuilder<'a>
-    where
-        T: ExtendsBindImageMemorySwapchainInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBindImageMemorySwapchainInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BindImageMemorySwapchainInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BindImageMemorySwapchainInfoKHR {
@@ -23930,6 +25653,11 @@ impl<'a> ::std::ops::Deref for AcquireNextImageInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AcquireNextImageInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AcquireNextImageInfoKHRBuilder<'a> {
     pub fn swapchain(mut self, swapchain: SwapchainKHR) -> AcquireNextImageInfoKHRBuilder<'a> {
         self.inner.swapchain = swapchain;
@@ -23951,11 +25679,15 @@ impl<'a> AcquireNextImageInfoKHRBuilder<'a> {
         self.inner.device_mask = device_mask;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> AcquireNextImageInfoKHRBuilder<'a>
-    where
-        T: ExtendsAcquireNextImageInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsAcquireNextImageInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> AcquireNextImageInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> AcquireNextImageInfoKHR {
@@ -24002,6 +25734,11 @@ impl<'a> ::std::ops::Deref for DeviceGroupPresentInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceGroupPresentInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceGroupPresentInfoKHRBuilder<'a> {
     pub fn device_masks(mut self, device_masks: &'a [u32]) -> DeviceGroupPresentInfoKHRBuilder<'a> {
         self.inner.swapchain_count = device_masks.len() as _;
@@ -24015,11 +25752,15 @@ impl<'a> DeviceGroupPresentInfoKHRBuilder<'a> {
         self.inner.mode = mode;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceGroupPresentInfoKHRBuilder<'a>
-    where
-        T: ExtendsDeviceGroupPresentInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceGroupPresentInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceGroupPresentInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceGroupPresentInfoKHR {
@@ -24064,6 +25805,11 @@ impl<'a> ::std::ops::Deref for DeviceGroupDeviceCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceGroupDeviceCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceGroupDeviceCreateInfoBuilder<'a> {
     pub fn physical_devices(
         mut self,
@@ -24073,11 +25819,15 @@ impl<'a> DeviceGroupDeviceCreateInfoBuilder<'a> {
         self.inner.p_physical_devices = physical_devices.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceGroupDeviceCreateInfoBuilder<'a>
-    where
-        T: ExtendsDeviceGroupDeviceCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceGroupDeviceCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceGroupDeviceCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceGroupDeviceCreateInfo {
@@ -24120,6 +25870,11 @@ impl<'a> ::std::ops::Deref for DeviceGroupSwapchainCreateInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceGroupSwapchainCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceGroupSwapchainCreateInfoKHRBuilder<'a> {
     pub fn modes(
         mut self,
@@ -24128,11 +25883,15 @@ impl<'a> DeviceGroupSwapchainCreateInfoKHRBuilder<'a> {
         self.inner.modes = modes;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceGroupSwapchainCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsDeviceGroupSwapchainCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceGroupSwapchainCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceGroupSwapchainCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceGroupSwapchainCreateInfoKHR {
@@ -24165,6 +25924,11 @@ impl<'a> ::std::ops::Deref for DescriptorUpdateTemplateEntryBuilder<'a> {
     type Target = DescriptorUpdateTemplateEntry;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DescriptorUpdateTemplateEntryBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DescriptorUpdateTemplateEntryBuilder<'a> {
@@ -24254,6 +26018,11 @@ impl<'a> ::std::ops::Deref for DescriptorUpdateTemplateCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DescriptorUpdateTemplateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DescriptorUpdateTemplateCreateInfoBuilder<'a> {
     pub fn flags(
         mut self,
@@ -24302,11 +26071,15 @@ impl<'a> DescriptorUpdateTemplateCreateInfoBuilder<'a> {
         self.inner.set = set;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> DescriptorUpdateTemplateCreateInfoBuilder<'a>
-    where
-        T: ExtendsDescriptorUpdateTemplateCreateInfo,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsDescriptorUpdateTemplateCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DescriptorUpdateTemplateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DescriptorUpdateTemplateCreateInfo {
@@ -24335,6 +26108,11 @@ impl<'a> ::std::ops::Deref for XYColorEXTBuilder<'a> {
     type Target = XYColorEXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for XYColorEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> XYColorEXTBuilder<'a> {
@@ -24399,6 +26177,11 @@ impl<'a> ::std::ops::Deref for HdrMetadataEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for HdrMetadataEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> HdrMetadataEXTBuilder<'a> {
     pub fn display_primary_red(
         mut self,
@@ -24447,11 +26230,15 @@ impl<'a> HdrMetadataEXTBuilder<'a> {
         self.inner.max_frame_average_light_level = max_frame_average_light_level;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> HdrMetadataEXTBuilder<'a>
-    where
-        T: ExtendsHdrMetadataEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsHdrMetadataEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> HdrMetadataEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> HdrMetadataEXT {
@@ -24479,6 +26266,11 @@ impl<'a> ::std::ops::Deref for RefreshCycleDurationGOOGLEBuilder<'a> {
     type Target = RefreshCycleDurationGOOGLE;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for RefreshCycleDurationGOOGLEBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> RefreshCycleDurationGOOGLEBuilder<'a> {
@@ -24518,6 +26310,11 @@ impl<'a> ::std::ops::Deref for PastPresentationTimingGOOGLEBuilder<'a> {
     type Target = PastPresentationTimingGOOGLE;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PastPresentationTimingGOOGLEBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PastPresentationTimingGOOGLEBuilder<'a> {
@@ -24595,17 +26392,26 @@ impl<'a> ::std::ops::Deref for PresentTimesInfoGOOGLEBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PresentTimesInfoGOOGLEBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PresentTimesInfoGOOGLEBuilder<'a> {
     pub fn times(mut self, times: &'a [PresentTimeGOOGLE]) -> PresentTimesInfoGOOGLEBuilder<'a> {
         self.inner.swapchain_count = times.len() as _;
         self.inner.p_times = times.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PresentTimesInfoGOOGLEBuilder<'a>
-    where
-        T: ExtendsPresentTimesInfoGOOGLE,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPresentTimesInfoGOOGLE>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PresentTimesInfoGOOGLEBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PresentTimesInfoGOOGLE {
@@ -24634,6 +26440,11 @@ impl<'a> ::std::ops::Deref for PresentTimeGOOGLEBuilder<'a> {
     type Target = PresentTimeGOOGLE;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PresentTimeGOOGLEBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PresentTimeGOOGLEBuilder<'a> {
@@ -24689,6 +26500,11 @@ impl<'a> ::std::ops::Deref for IOSSurfaceCreateInfoMVKBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for IOSSurfaceCreateInfoMVKBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> IOSSurfaceCreateInfoMVKBuilder<'a> {
     pub fn flags(mut self, flags: IOSSurfaceCreateFlagsMVK) -> IOSSurfaceCreateInfoMVKBuilder<'a> {
         self.inner.flags = flags;
@@ -24698,11 +26514,15 @@ impl<'a> IOSSurfaceCreateInfoMVKBuilder<'a> {
         self.inner.p_view = view;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> IOSSurfaceCreateInfoMVKBuilder<'a>
-    where
-        T: ExtendsIOSSurfaceCreateInfoMVK,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsIOSSurfaceCreateInfoMVK>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> IOSSurfaceCreateInfoMVKBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> IOSSurfaceCreateInfoMVK {
@@ -24746,6 +26566,11 @@ impl<'a> ::std::ops::Deref for MacOSSurfaceCreateInfoMVKBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MacOSSurfaceCreateInfoMVKBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MacOSSurfaceCreateInfoMVKBuilder<'a> {
     pub fn flags(
         mut self,
@@ -24758,11 +26583,15 @@ impl<'a> MacOSSurfaceCreateInfoMVKBuilder<'a> {
         self.inner.p_view = view;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> MacOSSurfaceCreateInfoMVKBuilder<'a>
-    where
-        T: ExtendsMacOSSurfaceCreateInfoMVK,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsMacOSSurfaceCreateInfoMVK>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MacOSSurfaceCreateInfoMVKBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MacOSSurfaceCreateInfoMVK {
@@ -24791,6 +26620,11 @@ impl<'a> ::std::ops::Deref for ViewportWScalingNVBuilder<'a> {
     type Target = ViewportWScalingNV;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ViewportWScalingNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ViewportWScalingNVBuilder<'a> {
@@ -24846,6 +26680,11 @@ impl<'a> ::std::ops::Deref for PipelineViewportWScalingStateCreateInfoNVBuilder<
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineViewportWScalingStateCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineViewportWScalingStateCreateInfoNVBuilder<'a> {
     pub fn viewport_w_scaling_enable(
         mut self,
@@ -24862,11 +26701,15 @@ impl<'a> PipelineViewportWScalingStateCreateInfoNVBuilder<'a> {
         self.inner.p_viewport_w_scalings = viewport_w_scalings.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineViewportWScalingStateCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsPipelineViewportWScalingStateCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineViewportWScalingStateCreateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineViewportWScalingStateCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineViewportWScalingStateCreateInfoNV {
@@ -24897,6 +26740,11 @@ impl<'a> ::std::ops::Deref for ViewportSwizzleNVBuilder<'a> {
     type Target = ViewportSwizzleNV;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ViewportSwizzleNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ViewportSwizzleNVBuilder<'a> {
@@ -24960,6 +26808,11 @@ impl<'a> ::std::ops::Deref for PipelineViewportSwizzleStateCreateInfoNVBuilder<'
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineViewportSwizzleStateCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineViewportSwizzleStateCreateInfoNVBuilder<'a> {
     pub fn flags(
         mut self,
@@ -24976,11 +26829,15 @@ impl<'a> PipelineViewportSwizzleStateCreateInfoNVBuilder<'a> {
         self.inner.p_viewport_swizzles = viewport_swizzles.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineViewportSwizzleStateCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsPipelineViewportSwizzleStateCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineViewportSwizzleStateCreateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineViewportSwizzleStateCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineViewportSwizzleStateCreateInfoNV {
@@ -25023,6 +26880,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceDiscardRectanglePropertiesEXTBuilde
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceDiscardRectanglePropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceDiscardRectanglePropertiesEXTBuilder<'a> {
     pub fn max_discard_rectangles(
         mut self,
@@ -25031,14 +26893,15 @@ impl<'a> PhysicalDeviceDiscardRectanglePropertiesEXTBuilder<'a> {
         self.inner.max_discard_rectangles = max_discard_rectangles;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceDiscardRectanglePropertiesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceDiscardRectanglePropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceDiscardRectanglePropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceDiscardRectanglePropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceDiscardRectanglePropertiesEXT {
@@ -25087,6 +26950,11 @@ impl<'a> ::std::ops::Deref for PipelineDiscardRectangleStateCreateInfoEXTBuilder
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineDiscardRectangleStateCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineDiscardRectangleStateCreateInfoEXTBuilder<'a> {
     pub fn flags(
         mut self,
@@ -25110,11 +26978,15 @@ impl<'a> PipelineDiscardRectangleStateCreateInfoEXTBuilder<'a> {
         self.inner.p_discard_rectangles = discard_rectangles.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineDiscardRectangleStateCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsPipelineDiscardRectangleStateCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineDiscardRectangleStateCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineDiscardRectangleStateCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineDiscardRectangleStateCreateInfoEXT {
@@ -25160,6 +27032,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceMultiviewPerViewAttributesPropertie
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceMultiviewPerViewAttributesPropertiesNVXBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceMultiviewPerViewAttributesPropertiesNVXBuilder<'a> {
     pub fn per_view_position_all_components(
         mut self,
@@ -25168,14 +27045,15 @@ impl<'a> PhysicalDeviceMultiviewPerViewAttributesPropertiesNVXBuilder<'a> {
         self.inner.per_view_position_all_components = per_view_position_all_components.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceMultiviewPerViewAttributesPropertiesNVX>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceMultiviewPerViewAttributesPropertiesNVXBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceMultiviewPerViewAttributesPropertiesNVX,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceMultiviewPerViewAttributesPropertiesNVXBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceMultiviewPerViewAttributesPropertiesNVX {
@@ -25205,6 +27083,11 @@ impl<'a> ::std::ops::Deref for InputAttachmentAspectReferenceBuilder<'a> {
     type Target = InputAttachmentAspectReference;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for InputAttachmentAspectReferenceBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> InputAttachmentAspectReferenceBuilder<'a> {
@@ -25268,6 +27151,11 @@ impl<'a> ::std::ops::Deref for RenderPassInputAttachmentAspectCreateInfoBuilder<
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for RenderPassInputAttachmentAspectCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> RenderPassInputAttachmentAspectCreateInfoBuilder<'a> {
     pub fn aspect_references(
         mut self,
@@ -25277,11 +27165,15 @@ impl<'a> RenderPassInputAttachmentAspectCreateInfoBuilder<'a> {
         self.inner.p_aspect_references = aspect_references.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> RenderPassInputAttachmentAspectCreateInfoBuilder<'a>
-    where
-        T: ExtendsRenderPassInputAttachmentAspectCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsRenderPassInputAttachmentAspectCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> RenderPassInputAttachmentAspectCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> RenderPassInputAttachmentAspectCreateInfo {
@@ -25323,16 +27215,25 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceSurfaceInfo2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceSurfaceInfo2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceSurfaceInfo2KHRBuilder<'a> {
     pub fn surface(mut self, surface: SurfaceKHR) -> PhysicalDeviceSurfaceInfo2KHRBuilder<'a> {
         self.inner.surface = surface;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PhysicalDeviceSurfaceInfo2KHRBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceSurfaceInfo2KHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPhysicalDeviceSurfaceInfo2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceSurfaceInfo2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceSurfaceInfo2KHR {
@@ -25374,6 +27275,11 @@ impl<'a> ::std::ops::Deref for SurfaceCapabilities2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SurfaceCapabilities2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SurfaceCapabilities2KHRBuilder<'a> {
     pub fn surface_capabilities(
         mut self,
@@ -25382,11 +27288,15 @@ impl<'a> SurfaceCapabilities2KHRBuilder<'a> {
         self.inner.surface_capabilities = surface_capabilities;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> SurfaceCapabilities2KHRBuilder<'a>
-    where
-        T: ExtendsSurfaceCapabilities2KHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsSurfaceCapabilities2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SurfaceCapabilities2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SurfaceCapabilities2KHR {
@@ -25428,6 +27338,11 @@ impl<'a> ::std::ops::Deref for SurfaceFormat2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SurfaceFormat2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SurfaceFormat2KHRBuilder<'a> {
     pub fn surface_format(
         mut self,
@@ -25436,11 +27351,15 @@ impl<'a> SurfaceFormat2KHRBuilder<'a> {
         self.inner.surface_format = surface_format;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> SurfaceFormat2KHRBuilder<'a>
-    where
-        T: ExtendsSurfaceFormat2KHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsSurfaceFormat2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SurfaceFormat2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SurfaceFormat2KHR {
@@ -25482,6 +27401,11 @@ impl<'a> ::std::ops::Deref for DisplayProperties2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayProperties2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayProperties2KHRBuilder<'a> {
     pub fn display_properties(
         mut self,
@@ -25490,11 +27414,15 @@ impl<'a> DisplayProperties2KHRBuilder<'a> {
         self.inner.display_properties = display_properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> DisplayProperties2KHRBuilder<'a>
-    where
-        T: ExtendsDisplayProperties2KHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsDisplayProperties2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DisplayProperties2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DisplayProperties2KHR {
@@ -25536,6 +27464,11 @@ impl<'a> ::std::ops::Deref for DisplayPlaneProperties2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayPlaneProperties2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayPlaneProperties2KHRBuilder<'a> {
     pub fn display_plane_properties(
         mut self,
@@ -25544,11 +27477,15 @@ impl<'a> DisplayPlaneProperties2KHRBuilder<'a> {
         self.inner.display_plane_properties = display_plane_properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> DisplayPlaneProperties2KHRBuilder<'a>
-    where
-        T: ExtendsDisplayPlaneProperties2KHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsDisplayPlaneProperties2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DisplayPlaneProperties2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DisplayPlaneProperties2KHR {
@@ -25590,6 +27527,11 @@ impl<'a> ::std::ops::Deref for DisplayModeProperties2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayModeProperties2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayModeProperties2KHRBuilder<'a> {
     pub fn display_mode_properties(
         mut self,
@@ -25598,11 +27540,15 @@ impl<'a> DisplayModeProperties2KHRBuilder<'a> {
         self.inner.display_mode_properties = display_mode_properties;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> DisplayModeProperties2KHRBuilder<'a>
-    where
-        T: ExtendsDisplayModeProperties2KHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsDisplayModeProperties2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DisplayModeProperties2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DisplayModeProperties2KHR {
@@ -25646,6 +27592,11 @@ impl<'a> ::std::ops::Deref for DisplayPlaneInfo2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayPlaneInfo2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayPlaneInfo2KHRBuilder<'a> {
     pub fn mode(mut self, mode: DisplayModeKHR) -> DisplayPlaneInfo2KHRBuilder<'a> {
         self.inner.mode = mode;
@@ -25655,11 +27606,15 @@ impl<'a> DisplayPlaneInfo2KHRBuilder<'a> {
         self.inner.plane_index = plane_index;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DisplayPlaneInfo2KHRBuilder<'a>
-    where
-        T: ExtendsDisplayPlaneInfo2KHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDisplayPlaneInfo2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DisplayPlaneInfo2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DisplayPlaneInfo2KHR {
@@ -25701,6 +27656,11 @@ impl<'a> ::std::ops::Deref for DisplayPlaneCapabilities2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DisplayPlaneCapabilities2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DisplayPlaneCapabilities2KHRBuilder<'a> {
     pub fn capabilities(
         mut self,
@@ -25709,11 +27669,15 @@ impl<'a> DisplayPlaneCapabilities2KHRBuilder<'a> {
         self.inner.capabilities = capabilities;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> DisplayPlaneCapabilities2KHRBuilder<'a>
-    where
-        T: ExtendsDisplayPlaneCapabilities2KHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsDisplayPlaneCapabilities2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DisplayPlaneCapabilities2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DisplayPlaneCapabilities2KHR {
@@ -25756,6 +27720,11 @@ impl<'a> ::std::ops::Deref for SharedPresentSurfaceCapabilitiesKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SharedPresentSurfaceCapabilitiesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SharedPresentSurfaceCapabilitiesKHRBuilder<'a> {
     pub fn shared_present_supported_usage_flags(
         mut self,
@@ -25764,11 +27733,15 @@ impl<'a> SharedPresentSurfaceCapabilitiesKHRBuilder<'a> {
         self.inner.shared_present_supported_usage_flags = shared_present_supported_usage_flags;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> SharedPresentSurfaceCapabilitiesKHRBuilder<'a>
-    where
-        T: ExtendsSharedPresentSurfaceCapabilitiesKHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsSharedPresentSurfaceCapabilitiesKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SharedPresentSurfaceCapabilitiesKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SharedPresentSurfaceCapabilitiesKHR {
@@ -25818,6 +27791,11 @@ impl<'a> ::std::ops::Deref for PhysicalDevice16BitStorageFeaturesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDevice16BitStorageFeaturesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDevice16BitStorageFeaturesBuilder<'a> {
     pub fn storage_buffer16_bit_access(
         mut self,
@@ -25848,11 +27826,15 @@ impl<'a> PhysicalDevice16BitStorageFeaturesBuilder<'a> {
         self.inner.storage_input_output16 = storage_input_output16.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDevice16BitStorageFeaturesBuilder<'a>
-    where
-        T: ExtendsPhysicalDevice16BitStorageFeatures,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDevice16BitStorageFeatures>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDevice16BitStorageFeaturesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDevice16BitStorageFeatures {
@@ -25901,6 +27883,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceSubgroupPropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceSubgroupPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceSubgroupPropertiesBuilder<'a> {
     pub fn subgroup_size(
         mut self,
@@ -25930,11 +27917,15 @@ impl<'a> PhysicalDeviceSubgroupPropertiesBuilder<'a> {
         self.inner.quad_operations_in_all_stages = quad_operations_in_all_stages.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceSubgroupPropertiesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceSubgroupProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceSubgroupProperties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceSubgroupPropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceSubgroupProperties {
@@ -25976,16 +27967,25 @@ impl<'a> ::std::ops::Deref for BufferMemoryRequirementsInfo2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BufferMemoryRequirementsInfo2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BufferMemoryRequirementsInfo2Builder<'a> {
     pub fn buffer(mut self, buffer: Buffer) -> BufferMemoryRequirementsInfo2Builder<'a> {
         self.inner.buffer = buffer;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BufferMemoryRequirementsInfo2Builder<'a>
-    where
-        T: ExtendsBufferMemoryRequirementsInfo2,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBufferMemoryRequirementsInfo2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BufferMemoryRequirementsInfo2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BufferMemoryRequirementsInfo2 {
@@ -26027,16 +28027,25 @@ impl<'a> ::std::ops::Deref for ImageMemoryRequirementsInfo2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageMemoryRequirementsInfo2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageMemoryRequirementsInfo2Builder<'a> {
     pub fn image(mut self, image: Image) -> ImageMemoryRequirementsInfo2Builder<'a> {
         self.inner.image = image;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageMemoryRequirementsInfo2Builder<'a>
-    where
-        T: ExtendsImageMemoryRequirementsInfo2,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageMemoryRequirementsInfo2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageMemoryRequirementsInfo2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageMemoryRequirementsInfo2 {
@@ -26078,16 +28087,25 @@ impl<'a> ::std::ops::Deref for ImageSparseMemoryRequirementsInfo2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageSparseMemoryRequirementsInfo2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageSparseMemoryRequirementsInfo2Builder<'a> {
     pub fn image(mut self, image: Image) -> ImageSparseMemoryRequirementsInfo2Builder<'a> {
         self.inner.image = image;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageSparseMemoryRequirementsInfo2Builder<'a>
-    where
-        T: ExtendsImageSparseMemoryRequirementsInfo2,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageSparseMemoryRequirementsInfo2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageSparseMemoryRequirementsInfo2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageSparseMemoryRequirementsInfo2 {
@@ -26129,6 +28147,11 @@ impl<'a> ::std::ops::Deref for MemoryRequirements2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryRequirements2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryRequirements2Builder<'a> {
     pub fn memory_requirements(
         mut self,
@@ -26137,11 +28160,15 @@ impl<'a> MemoryRequirements2Builder<'a> {
         self.inner.memory_requirements = memory_requirements;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> MemoryRequirements2Builder<'a>
-    where
-        T: ExtendsMemoryRequirements2,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsMemoryRequirements2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryRequirements2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryRequirements2 {
@@ -26183,6 +28210,11 @@ impl<'a> ::std::ops::Deref for SparseImageMemoryRequirements2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SparseImageMemoryRequirements2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SparseImageMemoryRequirements2Builder<'a> {
     pub fn memory_requirements(
         mut self,
@@ -26191,11 +28223,15 @@ impl<'a> SparseImageMemoryRequirements2Builder<'a> {
         self.inner.memory_requirements = memory_requirements;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> SparseImageMemoryRequirements2Builder<'a>
-    where
-        T: ExtendsSparseImageMemoryRequirements2,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsSparseImageMemoryRequirements2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SparseImageMemoryRequirements2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SparseImageMemoryRequirements2 {
@@ -26238,6 +28274,11 @@ impl<'a> ::std::ops::Deref for PhysicalDevicePointClippingPropertiesBuilder<'a> 
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDevicePointClippingPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDevicePointClippingPropertiesBuilder<'a> {
     pub fn point_clipping_behavior(
         mut self,
@@ -26246,11 +28287,15 @@ impl<'a> PhysicalDevicePointClippingPropertiesBuilder<'a> {
         self.inner.point_clipping_behavior = point_clipping_behavior;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDevicePointClippingPropertiesBuilder<'a>
-    where
-        T: ExtendsPhysicalDevicePointClippingProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDevicePointClippingProperties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDevicePointClippingPropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDevicePointClippingProperties {
@@ -26295,6 +28340,11 @@ impl<'a> ::std::ops::Deref for MemoryDedicatedRequirementsBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryDedicatedRequirementsBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryDedicatedRequirementsBuilder<'a> {
     pub fn prefers_dedicated_allocation(
         mut self,
@@ -26310,11 +28360,15 @@ impl<'a> MemoryDedicatedRequirementsBuilder<'a> {
         self.inner.requires_dedicated_allocation = requires_dedicated_allocation.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> MemoryDedicatedRequirementsBuilder<'a>
-    where
-        T: ExtendsMemoryDedicatedRequirements,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsMemoryDedicatedRequirements>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryDedicatedRequirementsBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryDedicatedRequirements {
@@ -26359,6 +28413,11 @@ impl<'a> ::std::ops::Deref for MemoryDedicatedAllocateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryDedicatedAllocateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryDedicatedAllocateInfoBuilder<'a> {
     pub fn image(mut self, image: Image) -> MemoryDedicatedAllocateInfoBuilder<'a> {
         self.inner.image = image;
@@ -26368,11 +28427,15 @@ impl<'a> MemoryDedicatedAllocateInfoBuilder<'a> {
         self.inner.buffer = buffer;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> MemoryDedicatedAllocateInfoBuilder<'a>
-    where
-        T: ExtendsMemoryDedicatedAllocateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsMemoryDedicatedAllocateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryDedicatedAllocateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryDedicatedAllocateInfo {
@@ -26415,16 +28478,25 @@ impl<'a> ::std::ops::Deref for ImageViewUsageCreateInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageViewUsageCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageViewUsageCreateInfoBuilder<'a> {
     pub fn usage(mut self, usage: ImageUsageFlags) -> ImageViewUsageCreateInfoBuilder<'a> {
         self.inner.usage = usage;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageViewUsageCreateInfoBuilder<'a>
-    where
-        T: ExtendsImageViewUsageCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageViewUsageCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageViewUsageCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageViewUsageCreateInfo {
@@ -26470,6 +28542,11 @@ impl<'a> ::std::ops::Deref for PipelineTessellationDomainOriginStateCreateInfoBu
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineTessellationDomainOriginStateCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineTessellationDomainOriginStateCreateInfoBuilder<'a> {
     pub fn domain_origin(
         mut self,
@@ -26478,14 +28555,15 @@ impl<'a> PipelineTessellationDomainOriginStateCreateInfoBuilder<'a> {
         self.inner.domain_origin = domain_origin;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPipelineTessellationDomainOriginStateCreateInfo>(
         mut self,
-        next: &'a T,
-    ) -> PipelineTessellationDomainOriginStateCreateInfoBuilder<'a>
-    where
-        T: ExtendsPipelineTessellationDomainOriginStateCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineTessellationDomainOriginStateCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineTessellationDomainOriginStateCreateInfo {
@@ -26529,6 +28607,11 @@ impl<'a> ::std::ops::Deref for SamplerYcbcrConversionInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SamplerYcbcrConversionInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SamplerYcbcrConversionInfoBuilder<'a> {
     pub fn conversion(
         mut self,
@@ -26537,11 +28620,15 @@ impl<'a> SamplerYcbcrConversionInfoBuilder<'a> {
         self.inner.conversion = conversion;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SamplerYcbcrConversionInfoBuilder<'a>
-    where
-        T: ExtendsSamplerYcbcrConversionInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSamplerYcbcrConversionInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SamplerYcbcrConversionInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SamplerYcbcrConversionInfo {
@@ -26595,6 +28682,11 @@ impl<'a> ::std::ops::Deref for SamplerYcbcrConversionCreateInfoBuilder<'a> {
     type Target = SamplerYcbcrConversionCreateInfo;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SamplerYcbcrConversionCreateInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SamplerYcbcrConversionCreateInfoBuilder<'a> {
@@ -26651,11 +28743,15 @@ impl<'a> SamplerYcbcrConversionCreateInfoBuilder<'a> {
         self.inner.force_explicit_reconstruction = force_explicit_reconstruction.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SamplerYcbcrConversionCreateInfoBuilder<'a>
-    where
-        T: ExtendsSamplerYcbcrConversionCreateInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSamplerYcbcrConversionCreateInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SamplerYcbcrConversionCreateInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SamplerYcbcrConversionCreateInfo {
@@ -26698,6 +28794,11 @@ impl<'a> ::std::ops::Deref for BindImagePlaneMemoryInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BindImagePlaneMemoryInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BindImagePlaneMemoryInfoBuilder<'a> {
     pub fn plane_aspect(
         mut self,
@@ -26706,11 +28807,15 @@ impl<'a> BindImagePlaneMemoryInfoBuilder<'a> {
         self.inner.plane_aspect = plane_aspect;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BindImagePlaneMemoryInfoBuilder<'a>
-    where
-        T: ExtendsBindImagePlaneMemoryInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBindImagePlaneMemoryInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BindImagePlaneMemoryInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BindImagePlaneMemoryInfo {
@@ -26753,6 +28858,11 @@ impl<'a> ::std::ops::Deref for ImagePlaneMemoryRequirementsInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImagePlaneMemoryRequirementsInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImagePlaneMemoryRequirementsInfoBuilder<'a> {
     pub fn plane_aspect(
         mut self,
@@ -26761,11 +28871,15 @@ impl<'a> ImagePlaneMemoryRequirementsInfoBuilder<'a> {
         self.inner.plane_aspect = plane_aspect;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImagePlaneMemoryRequirementsInfoBuilder<'a>
-    where
-        T: ExtendsImagePlaneMemoryRequirementsInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImagePlaneMemoryRequirementsInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImagePlaneMemoryRequirementsInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImagePlaneMemoryRequirementsInfo {
@@ -26809,6 +28923,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceSamplerYcbcrConversionFeaturesBuild
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceSamplerYcbcrConversionFeaturesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceSamplerYcbcrConversionFeaturesBuilder<'a> {
     pub fn sampler_ycbcr_conversion(
         mut self,
@@ -26817,14 +28936,15 @@ impl<'a> PhysicalDeviceSamplerYcbcrConversionFeaturesBuilder<'a> {
         self.inner.sampler_ycbcr_conversion = sampler_ycbcr_conversion.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceSamplerYcbcrConversionFeatures>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceSamplerYcbcrConversionFeaturesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceSamplerYcbcrConversionFeatures,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceSamplerYcbcrConversionFeaturesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceSamplerYcbcrConversionFeatures {
@@ -26867,6 +28987,11 @@ impl<'a> ::std::ops::Deref for SamplerYcbcrConversionImageFormatPropertiesBuilde
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SamplerYcbcrConversionImageFormatPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SamplerYcbcrConversionImageFormatPropertiesBuilder<'a> {
     pub fn combined_image_sampler_descriptor_count(
         mut self,
@@ -26876,14 +29001,15 @@ impl<'a> SamplerYcbcrConversionImageFormatPropertiesBuilder<'a> {
             combined_image_sampler_descriptor_count;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsSamplerYcbcrConversionImageFormatProperties>(
         mut self,
-        next: &'a mut T,
-    ) -> SamplerYcbcrConversionImageFormatPropertiesBuilder<'a>
-    where
-        T: ExtendsSamplerYcbcrConversionImageFormatProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SamplerYcbcrConversionImageFormatPropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SamplerYcbcrConversionImageFormatProperties {
@@ -26926,6 +29052,11 @@ impl<'a> ::std::ops::Deref for TextureLODGatherFormatPropertiesAMDBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for TextureLODGatherFormatPropertiesAMDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> TextureLODGatherFormatPropertiesAMDBuilder<'a> {
     pub fn supports_texture_gather_lod_bias_amd(
         mut self,
@@ -26935,11 +29066,15 @@ impl<'a> TextureLODGatherFormatPropertiesAMDBuilder<'a> {
             supports_texture_gather_lod_bias_amd.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> TextureLODGatherFormatPropertiesAMDBuilder<'a>
-    where
-        T: ExtendsTextureLODGatherFormatPropertiesAMD,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsTextureLODGatherFormatPropertiesAMD>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> TextureLODGatherFormatPropertiesAMDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> TextureLODGatherFormatPropertiesAMD {
@@ -26985,6 +29120,11 @@ impl<'a> ::std::ops::Deref for ConditionalRenderingBeginInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ConditionalRenderingBeginInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ConditionalRenderingBeginInfoEXTBuilder<'a> {
     pub fn buffer(mut self, buffer: Buffer) -> ConditionalRenderingBeginInfoEXTBuilder<'a> {
         self.inner.buffer = buffer;
@@ -27001,11 +29141,15 @@ impl<'a> ConditionalRenderingBeginInfoEXTBuilder<'a> {
         self.inner.flags = flags;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ConditionalRenderingBeginInfoEXTBuilder<'a>
-    where
-        T: ExtendsConditionalRenderingBeginInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsConditionalRenderingBeginInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ConditionalRenderingBeginInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ConditionalRenderingBeginInfoEXT {
@@ -27048,16 +29192,25 @@ impl<'a> ::std::ops::Deref for ProtectedSubmitInfoBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ProtectedSubmitInfoBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ProtectedSubmitInfoBuilder<'a> {
     pub fn protected_submit(mut self, protected_submit: bool) -> ProtectedSubmitInfoBuilder<'a> {
         self.inner.protected_submit = protected_submit.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ProtectedSubmitInfoBuilder<'a>
-    where
-        T: ExtendsProtectedSubmitInfo,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsProtectedSubmitInfo>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ProtectedSubmitInfoBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ProtectedSubmitInfo {
@@ -27101,6 +29254,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceProtectedMemoryFeaturesBuilder<'a> 
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceProtectedMemoryFeaturesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceProtectedMemoryFeaturesBuilder<'a> {
     pub fn protected_memory(
         mut self,
@@ -27109,11 +29267,15 @@ impl<'a> PhysicalDeviceProtectedMemoryFeaturesBuilder<'a> {
         self.inner.protected_memory = protected_memory.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceProtectedMemoryFeaturesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceProtectedMemoryFeatures,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceProtectedMemoryFeatures>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceProtectedMemoryFeaturesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceProtectedMemoryFeatures {
@@ -27156,6 +29318,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceProtectedMemoryPropertiesBuilder<'a
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceProtectedMemoryPropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceProtectedMemoryPropertiesBuilder<'a> {
     pub fn protected_no_fault(
         mut self,
@@ -27164,11 +29331,15 @@ impl<'a> PhysicalDeviceProtectedMemoryPropertiesBuilder<'a> {
         self.inner.protected_no_fault = protected_no_fault.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceProtectedMemoryPropertiesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceProtectedMemoryProperties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceProtectedMemoryProperties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceProtectedMemoryPropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceProtectedMemoryProperties {
@@ -27214,6 +29385,11 @@ impl<'a> ::std::ops::Deref for DeviceQueueInfo2Builder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceQueueInfo2Builder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceQueueInfo2Builder<'a> {
     pub fn flags(mut self, flags: DeviceQueueCreateFlags) -> DeviceQueueInfo2Builder<'a> {
         self.inner.flags = flags;
@@ -27227,11 +29403,15 @@ impl<'a> DeviceQueueInfo2Builder<'a> {
         self.inner.queue_index = queue_index;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceQueueInfo2Builder<'a>
-    where
-        T: ExtendsDeviceQueueInfo2,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceQueueInfo2>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceQueueInfo2Builder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceQueueInfo2 {
@@ -27278,6 +29458,11 @@ impl<'a> ::std::ops::Deref for PipelineCoverageToColorStateCreateInfoNVBuilder<'
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineCoverageToColorStateCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineCoverageToColorStateCreateInfoNVBuilder<'a> {
     pub fn flags(
         mut self,
@@ -27300,11 +29485,15 @@ impl<'a> PipelineCoverageToColorStateCreateInfoNVBuilder<'a> {
         self.inner.coverage_to_color_location = coverage_to_color_location;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineCoverageToColorStateCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsPipelineCoverageToColorStateCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineCoverageToColorStateCreateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineCoverageToColorStateCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineCoverageToColorStateCreateInfoNV {
@@ -27349,6 +29538,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceSamplerFilterMinmaxPropertiesEXTBui
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceSamplerFilterMinmaxPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceSamplerFilterMinmaxPropertiesEXTBuilder<'a> {
     pub fn filter_minmax_single_component_formats(
         mut self,
@@ -27366,14 +29560,15 @@ impl<'a> PhysicalDeviceSamplerFilterMinmaxPropertiesEXTBuilder<'a> {
             filter_minmax_image_component_mapping.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceSamplerFilterMinmaxPropertiesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceSamplerFilterMinmaxPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceSamplerFilterMinmaxPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceSamplerFilterMinmaxPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceSamplerFilterMinmaxPropertiesEXT {
@@ -27402,6 +29597,11 @@ impl<'a> ::std::ops::Deref for SampleLocationEXTBuilder<'a> {
     type Target = SampleLocationEXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SampleLocationEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SampleLocationEXTBuilder<'a> {
@@ -27459,6 +29659,11 @@ impl<'a> ::std::ops::Deref for SampleLocationsInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SampleLocationsInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SampleLocationsInfoEXTBuilder<'a> {
     pub fn sample_locations_per_pixel(
         mut self,
@@ -27482,11 +29687,15 @@ impl<'a> SampleLocationsInfoEXTBuilder<'a> {
         self.inner.p_sample_locations = sample_locations.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SampleLocationsInfoEXTBuilder<'a>
-    where
-        T: ExtendsSampleLocationsInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSampleLocationsInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SampleLocationsInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SampleLocationsInfoEXT {
@@ -27515,6 +29724,11 @@ impl<'a> ::std::ops::Deref for AttachmentSampleLocationsEXTBuilder<'a> {
     type Target = AttachmentSampleLocationsEXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for AttachmentSampleLocationsEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> AttachmentSampleLocationsEXTBuilder<'a> {
@@ -27558,6 +29772,11 @@ impl<'a> ::std::ops::Deref for SubpassSampleLocationsEXTBuilder<'a> {
     type Target = SubpassSampleLocationsEXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for SubpassSampleLocationsEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> SubpassSampleLocationsEXTBuilder<'a> {
@@ -27618,6 +29837,11 @@ impl<'a> ::std::ops::Deref for RenderPassSampleLocationsBeginInfoEXTBuilder<'a> 
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for RenderPassSampleLocationsBeginInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> RenderPassSampleLocationsBeginInfoEXTBuilder<'a> {
     pub fn attachment_initial_sample_locations(
         mut self,
@@ -27637,11 +29861,15 @@ impl<'a> RenderPassSampleLocationsBeginInfoEXTBuilder<'a> {
         self.inner.p_post_subpass_sample_locations = post_subpass_sample_locations.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> RenderPassSampleLocationsBeginInfoEXTBuilder<'a>
-    where
-        T: ExtendsRenderPassSampleLocationsBeginInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsRenderPassSampleLocationsBeginInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> RenderPassSampleLocationsBeginInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> RenderPassSampleLocationsBeginInfoEXT {
@@ -27689,6 +29917,11 @@ impl<'a> ::std::ops::Deref for PipelineSampleLocationsStateCreateInfoEXTBuilder<
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineSampleLocationsStateCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineSampleLocationsStateCreateInfoEXTBuilder<'a> {
     pub fn sample_locations_enable(
         mut self,
@@ -27704,11 +29937,15 @@ impl<'a> PipelineSampleLocationsStateCreateInfoEXTBuilder<'a> {
         self.inner.sample_locations_info = sample_locations_info;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineSampleLocationsStateCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsPipelineSampleLocationsStateCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineSampleLocationsStateCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineSampleLocationsStateCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineSampleLocationsStateCreateInfoEXT {
@@ -27759,6 +29996,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceSampleLocationsPropertiesEXTBuilder
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceSampleLocationsPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceSampleLocationsPropertiesEXTBuilder<'a> {
     pub fn sample_location_sample_counts(
         mut self,
@@ -27795,14 +30037,15 @@ impl<'a> PhysicalDeviceSampleLocationsPropertiesEXTBuilder<'a> {
         self.inner.variable_sample_locations = variable_sample_locations.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceSampleLocationsPropertiesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceSampleLocationsPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceSampleLocationsPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceSampleLocationsPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceSampleLocationsPropertiesEXT {
@@ -27844,6 +30087,11 @@ impl<'a> ::std::ops::Deref for MultisamplePropertiesEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MultisamplePropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MultisamplePropertiesEXTBuilder<'a> {
     pub fn max_sample_location_grid_size(
         mut self,
@@ -27852,11 +30100,15 @@ impl<'a> MultisamplePropertiesEXTBuilder<'a> {
         self.inner.max_sample_location_grid_size = max_sample_location_grid_size;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> MultisamplePropertiesEXTBuilder<'a>
-    where
-        T: ExtendsMultisamplePropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsMultisamplePropertiesEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MultisamplePropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MultisamplePropertiesEXT {
@@ -27899,6 +30151,11 @@ impl<'a> ::std::ops::Deref for SamplerReductionModeCreateInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SamplerReductionModeCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SamplerReductionModeCreateInfoEXTBuilder<'a> {
     pub fn reduction_mode(
         mut self,
@@ -27907,11 +30164,15 @@ impl<'a> SamplerReductionModeCreateInfoEXTBuilder<'a> {
         self.inner.reduction_mode = reduction_mode;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SamplerReductionModeCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsSamplerReductionModeCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSamplerReductionModeCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SamplerReductionModeCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SamplerReductionModeCreateInfoEXT {
@@ -27955,6 +30216,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceBlendOperationAdvancedFeaturesEXTBu
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceBlendOperationAdvancedFeaturesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceBlendOperationAdvancedFeaturesEXTBuilder<'a> {
     pub fn advanced_blend_coherent_operations(
         mut self,
@@ -27963,14 +30229,15 @@ impl<'a> PhysicalDeviceBlendOperationAdvancedFeaturesEXTBuilder<'a> {
         self.inner.advanced_blend_coherent_operations = advanced_blend_coherent_operations.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceBlendOperationAdvancedFeaturesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceBlendOperationAdvancedFeaturesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceBlendOperationAdvancedFeaturesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceBlendOperationAdvancedFeaturesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceBlendOperationAdvancedFeaturesEXT {
@@ -28023,6 +30290,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceBlendOperationAdvancedPropertiesEXT
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceBlendOperationAdvancedPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceBlendOperationAdvancedPropertiesEXTBuilder<'a> {
     pub fn advanced_blend_max_color_attachments(
         mut self,
@@ -28068,14 +30340,15 @@ impl<'a> PhysicalDeviceBlendOperationAdvancedPropertiesEXTBuilder<'a> {
         self.inner.advanced_blend_all_operations = advanced_blend_all_operations.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceBlendOperationAdvancedPropertiesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceBlendOperationAdvancedPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceBlendOperationAdvancedPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceBlendOperationAdvancedPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceBlendOperationAdvancedPropertiesEXT {
@@ -28125,6 +30398,11 @@ impl<'a> ::std::ops::Deref for PipelineColorBlendAdvancedStateCreateInfoEXTBuild
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineColorBlendAdvancedStateCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineColorBlendAdvancedStateCreateInfoEXTBuilder<'a> {
     pub fn src_premultiplied(
         mut self,
@@ -28147,11 +30425,15 @@ impl<'a> PipelineColorBlendAdvancedStateCreateInfoEXTBuilder<'a> {
         self.inner.blend_overlap = blend_overlap;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineColorBlendAdvancedStateCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsPipelineColorBlendAdvancedStateCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineColorBlendAdvancedStateCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineColorBlendAdvancedStateCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineColorBlendAdvancedStateCreateInfoEXT {
@@ -28197,6 +30479,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceInlineUniformBlockFeaturesEXTBuilde
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceInlineUniformBlockFeaturesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceInlineUniformBlockFeaturesEXTBuilder<'a> {
     pub fn inline_uniform_block(
         mut self,
@@ -28214,14 +30501,15 @@ impl<'a> PhysicalDeviceInlineUniformBlockFeaturesEXTBuilder<'a> {
             descriptor_binding_inline_uniform_block_update_after_bind.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceInlineUniformBlockFeaturesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceInlineUniformBlockFeaturesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceInlineUniformBlockFeaturesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceInlineUniformBlockFeaturesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceInlineUniformBlockFeaturesEXT {
@@ -28272,6 +30560,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceInlineUniformBlockPropertiesEXTBuil
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceInlineUniformBlockPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceInlineUniformBlockPropertiesEXTBuilder<'a> {
     pub fn max_inline_uniform_block_size(
         mut self,
@@ -28314,14 +30607,15 @@ impl<'a> PhysicalDeviceInlineUniformBlockPropertiesEXTBuilder<'a> {
             max_descriptor_set_update_after_bind_inline_uniform_blocks;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceInlineUniformBlockPropertiesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceInlineUniformBlockPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceInlineUniformBlockPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceInlineUniformBlockPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceInlineUniformBlockPropertiesEXT {
@@ -28366,17 +30660,26 @@ impl<'a> ::std::ops::Deref for WriteDescriptorSetInlineUniformBlockEXTBuilder<'a
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for WriteDescriptorSetInlineUniformBlockEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> WriteDescriptorSetInlineUniformBlockEXTBuilder<'a> {
     pub fn data(mut self, data: &'a [u8]) -> WriteDescriptorSetInlineUniformBlockEXTBuilder<'a> {
         self.inner.data_size = data.len() as _;
         self.inner.p_data = data.as_ptr() as *const c_void;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> WriteDescriptorSetInlineUniformBlockEXTBuilder<'a>
-    where
-        T: ExtendsWriteDescriptorSetInlineUniformBlockEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsWriteDescriptorSetInlineUniformBlockEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> WriteDescriptorSetInlineUniformBlockEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> WriteDescriptorSetInlineUniformBlockEXT {
@@ -28419,6 +30722,11 @@ impl<'a> ::std::ops::Deref for DescriptorPoolInlineUniformBlockCreateInfoEXTBuil
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DescriptorPoolInlineUniformBlockCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DescriptorPoolInlineUniformBlockCreateInfoEXTBuilder<'a> {
     pub fn max_inline_uniform_block_bindings(
         mut self,
@@ -28427,14 +30735,15 @@ impl<'a> DescriptorPoolInlineUniformBlockCreateInfoEXTBuilder<'a> {
         self.inner.max_inline_uniform_block_bindings = max_inline_uniform_block_bindings;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsDescriptorPoolInlineUniformBlockCreateInfoEXT>(
         mut self,
-        next: &'a T,
-    ) -> DescriptorPoolInlineUniformBlockCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsDescriptorPoolInlineUniformBlockCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DescriptorPoolInlineUniformBlockCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DescriptorPoolInlineUniformBlockCreateInfoEXT {
@@ -28488,6 +30797,11 @@ impl<'a> ::std::ops::Deref for PipelineCoverageModulationStateCreateInfoNVBuilde
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineCoverageModulationStateCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineCoverageModulationStateCreateInfoNVBuilder<'a> {
     pub fn flags(
         mut self,
@@ -28518,11 +30832,15 @@ impl<'a> PipelineCoverageModulationStateCreateInfoNVBuilder<'a> {
         self.inner.p_coverage_modulation_table = coverage_modulation_table.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineCoverageModulationStateCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsPipelineCoverageModulationStateCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineCoverageModulationStateCreateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineCoverageModulationStateCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineCoverageModulationStateCreateInfoNV {
@@ -28568,6 +30886,11 @@ impl<'a> ::std::ops::Deref for ImageFormatListCreateInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageFormatListCreateInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageFormatListCreateInfoKHRBuilder<'a> {
     pub fn view_formats(
         mut self,
@@ -28577,11 +30900,15 @@ impl<'a> ImageFormatListCreateInfoKHRBuilder<'a> {
         self.inner.p_view_formats = view_formats.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageFormatListCreateInfoKHRBuilder<'a>
-    where
-        T: ExtendsImageFormatListCreateInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageFormatListCreateInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageFormatListCreateInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageFormatListCreateInfoKHR {
@@ -28627,6 +30954,11 @@ impl<'a> ::std::ops::Deref for ValidationCacheCreateInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ValidationCacheCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ValidationCacheCreateInfoEXTBuilder<'a> {
     pub fn flags(
         mut self,
@@ -28643,11 +30975,15 @@ impl<'a> ValidationCacheCreateInfoEXTBuilder<'a> {
         self.inner.p_initial_data = initial_data.as_ptr() as *const c_void;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ValidationCacheCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsValidationCacheCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsValidationCacheCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ValidationCacheCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ValidationCacheCreateInfoEXT {
@@ -28690,6 +31026,11 @@ impl<'a> ::std::ops::Deref for ShaderModuleValidationCacheCreateInfoEXTBuilder<'
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ShaderModuleValidationCacheCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ShaderModuleValidationCacheCreateInfoEXTBuilder<'a> {
     pub fn validation_cache(
         mut self,
@@ -28698,11 +31039,15 @@ impl<'a> ShaderModuleValidationCacheCreateInfoEXTBuilder<'a> {
         self.inner.validation_cache = validation_cache;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ShaderModuleValidationCacheCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsShaderModuleValidationCacheCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsShaderModuleValidationCacheCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ShaderModuleValidationCacheCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ShaderModuleValidationCacheCreateInfoEXT {
@@ -28747,6 +31092,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceMaintenance3PropertiesBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceMaintenance3PropertiesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceMaintenance3PropertiesBuilder<'a> {
     pub fn max_per_set_descriptors(
         mut self,
@@ -28762,11 +31112,15 @@ impl<'a> PhysicalDeviceMaintenance3PropertiesBuilder<'a> {
         self.inner.max_memory_allocation_size = max_memory_allocation_size;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceMaintenance3PropertiesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceMaintenance3Properties,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceMaintenance3Properties>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceMaintenance3PropertiesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceMaintenance3Properties {
@@ -28808,16 +31162,25 @@ impl<'a> ::std::ops::Deref for DescriptorSetLayoutSupportBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DescriptorSetLayoutSupportBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DescriptorSetLayoutSupportBuilder<'a> {
     pub fn supported(mut self, supported: bool) -> DescriptorSetLayoutSupportBuilder<'a> {
         self.inner.supported = supported.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> DescriptorSetLayoutSupportBuilder<'a>
-    where
-        T: ExtendsDescriptorSetLayoutSupport,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsDescriptorSetLayoutSupport>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DescriptorSetLayoutSupportBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DescriptorSetLayoutSupport {
@@ -28861,6 +31224,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceShaderDrawParameterFeaturesBuilder<
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceShaderDrawParameterFeaturesBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceShaderDrawParameterFeaturesBuilder<'a> {
     pub fn shader_draw_parameters(
         mut self,
@@ -28869,14 +31237,15 @@ impl<'a> PhysicalDeviceShaderDrawParameterFeaturesBuilder<'a> {
         self.inner.shader_draw_parameters = shader_draw_parameters.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceShaderDrawParameterFeatures>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceShaderDrawParameterFeaturesBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceShaderDrawParameterFeatures,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceShaderDrawParameterFeaturesBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceShaderDrawParameterFeatures {
@@ -28924,6 +31293,11 @@ impl<'a> ::std::ops::Deref for NativeBufferANDROIDBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for NativeBufferANDROIDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> NativeBufferANDROIDBuilder<'a> {
     pub fn handle(mut self, handle: *const c_void) -> NativeBufferANDROIDBuilder<'a> {
         self.inner.handle = handle;
@@ -28941,11 +31315,15 @@ impl<'a> NativeBufferANDROIDBuilder<'a> {
         self.inner.usage = usage;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> NativeBufferANDROIDBuilder<'a>
-    where
-        T: ExtendsNativeBufferANDROID,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsNativeBufferANDROID>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> NativeBufferANDROIDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> NativeBufferANDROID {
@@ -28977,6 +31355,11 @@ impl<'a> ::std::ops::Deref for ShaderResourceUsageAMDBuilder<'a> {
     type Target = ShaderResourceUsageAMD;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ShaderResourceUsageAMDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ShaderResourceUsageAMDBuilder<'a> {
@@ -29053,6 +31436,11 @@ impl<'a> ::std::ops::Deref for ShaderStatisticsInfoAMDBuilder<'a> {
     type Target = ShaderStatisticsInfoAMD;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ShaderStatisticsInfoAMDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ShaderStatisticsInfoAMDBuilder<'a> {
@@ -29145,6 +31533,11 @@ impl<'a> ::std::ops::Deref for DeviceQueueGlobalPriorityCreateInfoEXTBuilder<'a>
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceQueueGlobalPriorityCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceQueueGlobalPriorityCreateInfoEXTBuilder<'a> {
     pub fn global_priority(
         mut self,
@@ -29153,11 +31546,15 @@ impl<'a> DeviceQueueGlobalPriorityCreateInfoEXTBuilder<'a> {
         self.inner.global_priority = global_priority;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceQueueGlobalPriorityCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsDeviceQueueGlobalPriorityCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceQueueGlobalPriorityCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceQueueGlobalPriorityCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceQueueGlobalPriorityCreateInfoEXT {
@@ -29203,6 +31600,11 @@ impl<'a> ::std::ops::Deref for DebugUtilsObjectNameInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DebugUtilsObjectNameInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DebugUtilsObjectNameInfoEXTBuilder<'a> {
     pub fn object_type(
         mut self,
@@ -29222,11 +31624,15 @@ impl<'a> DebugUtilsObjectNameInfoEXTBuilder<'a> {
         self.inner.p_object_name = object_name.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DebugUtilsObjectNameInfoEXTBuilder<'a>
-    where
-        T: ExtendsDebugUtilsObjectNameInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDebugUtilsObjectNameInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DebugUtilsObjectNameInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DebugUtilsObjectNameInfoEXT {
@@ -29276,6 +31682,11 @@ impl<'a> ::std::ops::Deref for DebugUtilsObjectTagInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DebugUtilsObjectTagInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DebugUtilsObjectTagInfoEXTBuilder<'a> {
     pub fn object_type(mut self, object_type: ObjectType) -> DebugUtilsObjectTagInfoEXTBuilder<'a> {
         self.inner.object_type = object_type;
@@ -29294,11 +31705,15 @@ impl<'a> DebugUtilsObjectTagInfoEXTBuilder<'a> {
         self.inner.p_tag = tag.as_ptr() as *const c_void;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DebugUtilsObjectTagInfoEXTBuilder<'a>
-    where
-        T: ExtendsDebugUtilsObjectTagInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDebugUtilsObjectTagInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DebugUtilsObjectTagInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DebugUtilsObjectTagInfoEXT {
@@ -29342,6 +31757,11 @@ impl<'a> ::std::ops::Deref for DebugUtilsLabelEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DebugUtilsLabelEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DebugUtilsLabelEXTBuilder<'a> {
     pub fn label_name(mut self, label_name: &'a ::std::ffi::CStr) -> DebugUtilsLabelEXTBuilder<'a> {
         self.inner.p_label_name = label_name.as_ptr();
@@ -29351,11 +31771,15 @@ impl<'a> DebugUtilsLabelEXTBuilder<'a> {
         self.inner.color = color;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DebugUtilsLabelEXTBuilder<'a>
-    where
-        T: ExtendsDebugUtilsLabelEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDebugUtilsLabelEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DebugUtilsLabelEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DebugUtilsLabelEXT {
@@ -29422,6 +31846,11 @@ impl<'a> ::std::ops::Deref for DebugUtilsMessengerCreateInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DebugUtilsMessengerCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DebugUtilsMessengerCreateInfoEXTBuilder<'a> {
     pub fn flags(
         mut self,
@@ -29458,11 +31887,15 @@ impl<'a> DebugUtilsMessengerCreateInfoEXTBuilder<'a> {
         self.inner.p_user_data = user_data;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DebugUtilsMessengerCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsDebugUtilsMessengerCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDebugUtilsMessengerCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DebugUtilsMessengerCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DebugUtilsMessengerCreateInfoEXT {
@@ -29522,6 +31955,11 @@ impl<'a> ::std::ops::Deref for DebugUtilsMessengerCallbackDataEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DebugUtilsMessengerCallbackDataEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DebugUtilsMessengerCallbackDataEXTBuilder<'a> {
     pub fn flags(
         mut self,
@@ -29575,11 +32013,15 @@ impl<'a> DebugUtilsMessengerCallbackDataEXTBuilder<'a> {
         self.inner.p_objects = objects.as_mut_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DebugUtilsMessengerCallbackDataEXTBuilder<'a>
-    where
-        T: ExtendsDebugUtilsMessengerCallbackDataEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDebugUtilsMessengerCallbackDataEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DebugUtilsMessengerCallbackDataEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DebugUtilsMessengerCallbackDataEXT {
@@ -29624,6 +32066,11 @@ impl<'a> ::std::ops::Deref for ImportMemoryHostPointerInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImportMemoryHostPointerInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImportMemoryHostPointerInfoEXTBuilder<'a> {
     pub fn handle_type(
         mut self,
@@ -29639,11 +32086,15 @@ impl<'a> ImportMemoryHostPointerInfoEXTBuilder<'a> {
         self.inner.p_host_pointer = host_pointer;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImportMemoryHostPointerInfoEXTBuilder<'a>
-    where
-        T: ExtendsImportMemoryHostPointerInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImportMemoryHostPointerInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImportMemoryHostPointerInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImportMemoryHostPointerInfoEXT {
@@ -29685,6 +32136,11 @@ impl<'a> ::std::ops::Deref for MemoryHostPointerPropertiesEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryHostPointerPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryHostPointerPropertiesEXTBuilder<'a> {
     pub fn memory_type_bits(
         mut self,
@@ -29693,11 +32149,15 @@ impl<'a> MemoryHostPointerPropertiesEXTBuilder<'a> {
         self.inner.memory_type_bits = memory_type_bits;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> MemoryHostPointerPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsMemoryHostPointerPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsMemoryHostPointerPropertiesEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryHostPointerPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryHostPointerPropertiesEXT {
@@ -29740,6 +32200,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceExternalMemoryHostPropertiesEXTBuil
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceExternalMemoryHostPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceExternalMemoryHostPropertiesEXTBuilder<'a> {
     pub fn min_imported_host_pointer_alignment(
         mut self,
@@ -29748,14 +32213,15 @@ impl<'a> PhysicalDeviceExternalMemoryHostPropertiesEXTBuilder<'a> {
         self.inner.min_imported_host_pointer_alignment = min_imported_host_pointer_alignment;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceExternalMemoryHostPropertiesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceExternalMemoryHostPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceExternalMemoryHostPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceExternalMemoryHostPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceExternalMemoryHostPropertiesEXT {
@@ -29815,6 +32281,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceConservativeRasterizationProperties
     type Target = PhysicalDeviceConservativeRasterizationPropertiesEXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceConservativeRasterizationPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDeviceConservativeRasterizationPropertiesEXTBuilder<'a> {
@@ -29886,14 +32357,15 @@ impl<'a> PhysicalDeviceConservativeRasterizationPropertiesEXTBuilder<'a> {
             conservative_rasterization_post_depth_coverage.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceConservativeRasterizationPropertiesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceConservativeRasterizationPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceConservativeRasterizationPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceConservativeRasterizationPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceConservativeRasterizationPropertiesEXT {
@@ -29935,6 +32407,11 @@ impl<'a> ::std::ops::Deref for CalibratedTimestampInfoEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for CalibratedTimestampInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> CalibratedTimestampInfoEXTBuilder<'a> {
     pub fn time_domain(
         mut self,
@@ -29943,11 +32420,15 @@ impl<'a> CalibratedTimestampInfoEXTBuilder<'a> {
         self.inner.time_domain = time_domain;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> CalibratedTimestampInfoEXTBuilder<'a>
-    where
-        T: ExtendsCalibratedTimestampInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsCalibratedTimestampInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> CalibratedTimestampInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> CalibratedTimestampInfoEXT {
@@ -30014,6 +32495,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceShaderCorePropertiesAMDBuilder<'a> 
     type Target = PhysicalDeviceShaderCorePropertiesAMD;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceShaderCorePropertiesAMDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDeviceShaderCorePropertiesAMDBuilder<'a> {
@@ -30115,11 +32601,15 @@ impl<'a> PhysicalDeviceShaderCorePropertiesAMDBuilder<'a> {
         self.inner.vgpr_allocation_granularity = vgpr_allocation_granularity;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceShaderCorePropertiesAMDBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceShaderCorePropertiesAMD,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceShaderCorePropertiesAMD>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceShaderCorePropertiesAMDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceShaderCorePropertiesAMD {
@@ -30169,6 +32659,11 @@ impl<'a> ::std::ops::Deref for PipelineRasterizationConservativeStateCreateInfoE
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineRasterizationConservativeStateCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineRasterizationConservativeStateCreateInfoEXTBuilder<'a> {
     pub fn flags(
         mut self,
@@ -30191,14 +32686,15 @@ impl<'a> PipelineRasterizationConservativeStateCreateInfoEXTBuilder<'a> {
         self.inner.extra_primitive_overestimation_size = extra_primitive_overestimation_size;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPipelineRasterizationConservativeStateCreateInfoEXT>(
         mut self,
-        next: &'a T,
-    ) -> PipelineRasterizationConservativeStateCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsPipelineRasterizationConservativeStateCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineRasterizationConservativeStateCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineRasterizationConservativeStateCreateInfoEXT {
@@ -30278,6 +32774,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceDescriptorIndexingFeaturesEXTBuilde
     type Target = PhysicalDeviceDescriptorIndexingFeaturesEXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceDescriptorIndexingFeaturesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDeviceDescriptorIndexingFeaturesEXTBuilder<'a> {
@@ -30450,14 +32951,15 @@ impl<'a> PhysicalDeviceDescriptorIndexingFeaturesEXTBuilder<'a> {
         self.inner.runtime_descriptor_array = runtime_descriptor_array.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceDescriptorIndexingFeaturesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceDescriptorIndexingFeaturesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceDescriptorIndexingFeaturesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceDescriptorIndexingFeaturesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceDescriptorIndexingFeaturesEXT {
@@ -30542,6 +33044,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceDescriptorIndexingPropertiesEXTBuil
     type Target = PhysicalDeviceDescriptorIndexingPropertiesEXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceDescriptorIndexingPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDeviceDescriptorIndexingPropertiesEXTBuilder<'a> {
@@ -30746,14 +33253,15 @@ impl<'a> PhysicalDeviceDescriptorIndexingPropertiesEXTBuilder<'a> {
             max_descriptor_set_update_after_bind_input_attachments;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceDescriptorIndexingPropertiesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceDescriptorIndexingPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceDescriptorIndexingPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceDescriptorIndexingPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceDescriptorIndexingPropertiesEXT {
@@ -30798,6 +33306,11 @@ impl<'a> ::std::ops::Deref for DescriptorSetLayoutBindingFlagsCreateInfoEXTBuild
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DescriptorSetLayoutBindingFlagsCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DescriptorSetLayoutBindingFlagsCreateInfoEXTBuilder<'a> {
     pub fn binding_flags(
         mut self,
@@ -30807,11 +33320,15 @@ impl<'a> DescriptorSetLayoutBindingFlagsCreateInfoEXTBuilder<'a> {
         self.inner.p_binding_flags = binding_flags.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DescriptorSetLayoutBindingFlagsCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsDescriptorSetLayoutBindingFlagsCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDescriptorSetLayoutBindingFlagsCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DescriptorSetLayoutBindingFlagsCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DescriptorSetLayoutBindingFlagsCreateInfoEXT {
@@ -30859,6 +33376,11 @@ impl<'a> ::std::ops::Deref for DescriptorSetVariableDescriptorCountAllocateInfoE
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DescriptorSetVariableDescriptorCountAllocateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DescriptorSetVariableDescriptorCountAllocateInfoEXTBuilder<'a> {
     pub fn descriptor_counts(
         mut self,
@@ -30868,14 +33390,15 @@ impl<'a> DescriptorSetVariableDescriptorCountAllocateInfoEXTBuilder<'a> {
         self.inner.p_descriptor_counts = descriptor_counts.as_ptr();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsDescriptorSetVariableDescriptorCountAllocateInfoEXT>(
         mut self,
-        next: &'a T,
-    ) -> DescriptorSetVariableDescriptorCountAllocateInfoEXTBuilder<'a>
-    where
-        T: ExtendsDescriptorSetVariableDescriptorCountAllocateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DescriptorSetVariableDescriptorCountAllocateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DescriptorSetVariableDescriptorCountAllocateInfoEXT {
@@ -30921,6 +33444,11 @@ impl<'a> ::std::ops::Deref for DescriptorSetVariableDescriptorCountLayoutSupport
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DescriptorSetVariableDescriptorCountLayoutSupportEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DescriptorSetVariableDescriptorCountLayoutSupportEXTBuilder<'a> {
     pub fn max_variable_descriptor_count(
         mut self,
@@ -30929,14 +33457,15 @@ impl<'a> DescriptorSetVariableDescriptorCountLayoutSupportEXTBuilder<'a> {
         self.inner.max_variable_descriptor_count = max_variable_descriptor_count;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsDescriptorSetVariableDescriptorCountLayoutSupportEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> DescriptorSetVariableDescriptorCountLayoutSupportEXTBuilder<'a>
-    where
-        T: ExtendsDescriptorSetVariableDescriptorCountLayoutSupportEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DescriptorSetVariableDescriptorCountLayoutSupportEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DescriptorSetVariableDescriptorCountLayoutSupportEXT {
@@ -30994,6 +33523,11 @@ impl<'a> ::std::ops::Deref for AttachmentDescription2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AttachmentDescription2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AttachmentDescription2KHRBuilder<'a> {
     pub fn flags(
         mut self,
@@ -31046,11 +33580,15 @@ impl<'a> AttachmentDescription2KHRBuilder<'a> {
         self.inner.final_layout = final_layout;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> AttachmentDescription2KHRBuilder<'a>
-    where
-        T: ExtendsAttachmentDescription2KHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsAttachmentDescription2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> AttachmentDescription2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> AttachmentDescription2KHR {
@@ -31096,6 +33634,11 @@ impl<'a> ::std::ops::Deref for AttachmentReference2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AttachmentReference2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AttachmentReference2KHRBuilder<'a> {
     pub fn attachment(mut self, attachment: u32) -> AttachmentReference2KHRBuilder<'a> {
         self.inner.attachment = attachment;
@@ -31112,11 +33655,15 @@ impl<'a> AttachmentReference2KHRBuilder<'a> {
         self.inner.aspect_mask = aspect_mask;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> AttachmentReference2KHRBuilder<'a>
-    where
-        T: ExtendsAttachmentReference2KHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsAttachmentReference2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> AttachmentReference2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> AttachmentReference2KHR {
@@ -31178,6 +33725,11 @@ impl<'a> ::std::ops::Deref for SubpassDescription2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SubpassDescription2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SubpassDescription2KHRBuilder<'a> {
     pub fn flags(mut self, flags: SubpassDescriptionFlags) -> SubpassDescription2KHRBuilder<'a> {
         self.inner.flags = flags;
@@ -31233,11 +33785,15 @@ impl<'a> SubpassDescription2KHRBuilder<'a> {
         self.inner.p_preserve_attachments = preserve_attachments.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SubpassDescription2KHRBuilder<'a>
-    where
-        T: ExtendsSubpassDescription2KHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSubpassDescription2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SubpassDescription2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SubpassDescription2KHR {
@@ -31293,6 +33849,11 @@ impl<'a> ::std::ops::Deref for SubpassDependency2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SubpassDependency2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SubpassDependency2KHRBuilder<'a> {
     pub fn src_subpass(mut self, src_subpass: u32) -> SubpassDependency2KHRBuilder<'a> {
         self.inner.src_subpass = src_subpass;
@@ -31341,11 +33902,15 @@ impl<'a> SubpassDependency2KHRBuilder<'a> {
         self.inner.view_offset = view_offset;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SubpassDependency2KHRBuilder<'a>
-    where
-        T: ExtendsSubpassDependency2KHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSubpassDependency2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SubpassDependency2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SubpassDependency2KHR {
@@ -31403,6 +33968,11 @@ impl<'a> ::std::ops::Deref for RenderPassCreateInfo2KHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for RenderPassCreateInfo2KHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> RenderPassCreateInfo2KHRBuilder<'a> {
     pub fn flags(mut self, flags: RenderPassCreateFlags) -> RenderPassCreateInfo2KHRBuilder<'a> {
         self.inner.flags = flags;
@@ -31440,11 +34010,15 @@ impl<'a> RenderPassCreateInfo2KHRBuilder<'a> {
         self.inner.p_correlated_view_masks = correlated_view_masks.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> RenderPassCreateInfo2KHRBuilder<'a>
-    where
-        T: ExtendsRenderPassCreateInfo2KHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsRenderPassCreateInfo2KHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> RenderPassCreateInfo2KHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> RenderPassCreateInfo2KHR {
@@ -31486,16 +34060,25 @@ impl<'a> ::std::ops::Deref for SubpassBeginInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SubpassBeginInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SubpassBeginInfoKHRBuilder<'a> {
     pub fn contents(mut self, contents: SubpassContents) -> SubpassBeginInfoKHRBuilder<'a> {
         self.inner.contents = contents;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> SubpassBeginInfoKHRBuilder<'a>
-    where
-        T: ExtendsSubpassBeginInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSubpassBeginInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SubpassBeginInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SubpassBeginInfoKHR {
@@ -31535,12 +34118,21 @@ impl<'a> ::std::ops::Deref for SubpassEndInfoKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for SubpassEndInfoKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> SubpassEndInfoKHRBuilder<'a> {
-    pub fn next<T>(mut self, next: &'a T) -> SubpassEndInfoKHRBuilder<'a>
-    where
-        T: ExtendsSubpassEndInfoKHR,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsSubpassEndInfoKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> SubpassEndInfoKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> SubpassEndInfoKHR {
@@ -31569,6 +34161,11 @@ impl<'a> ::std::ops::Deref for VertexInputBindingDivisorDescriptionEXTBuilder<'a
     type Target = VertexInputBindingDivisorDescriptionEXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for VertexInputBindingDivisorDescriptionEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> VertexInputBindingDivisorDescriptionEXTBuilder<'a> {
@@ -31625,6 +34222,11 @@ impl<'a> ::std::ops::Deref for PipelineVertexInputDivisorStateCreateInfoEXTBuild
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineVertexInputDivisorStateCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineVertexInputDivisorStateCreateInfoEXTBuilder<'a> {
     pub fn vertex_binding_divisors(
         mut self,
@@ -31634,11 +34236,15 @@ impl<'a> PipelineVertexInputDivisorStateCreateInfoEXTBuilder<'a> {
         self.inner.p_vertex_binding_divisors = vertex_binding_divisors.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PipelineVertexInputDivisorStateCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsPipelineVertexInputDivisorStateCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPipelineVertexInputDivisorStateCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineVertexInputDivisorStateCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineVertexInputDivisorStateCreateInfoEXT {
@@ -31681,6 +34287,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceVertexAttributeDivisorPropertiesEXT
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceVertexAttributeDivisorPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceVertexAttributeDivisorPropertiesEXTBuilder<'a> {
     pub fn max_vertex_attrib_divisor(
         mut self,
@@ -31689,14 +34300,15 @@ impl<'a> PhysicalDeviceVertexAttributeDivisorPropertiesEXTBuilder<'a> {
         self.inner.max_vertex_attrib_divisor = max_vertex_attrib_divisor;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceVertexAttributeDivisorPropertiesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceVertexAttributeDivisorPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceVertexAttributeDivisorPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceVertexAttributeDivisorPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceVertexAttributeDivisorPropertiesEXT {
@@ -31745,6 +34357,11 @@ impl<'a> ::std::ops::Deref for PhysicalDevicePCIBusInfoPropertiesEXTBuilder<'a> 
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDevicePCIBusInfoPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDevicePCIBusInfoPropertiesEXTBuilder<'a> {
     pub fn pci_domain(
         mut self,
@@ -31771,11 +34388,15 @@ impl<'a> PhysicalDevicePCIBusInfoPropertiesEXTBuilder<'a> {
         self.inner.pci_function = pci_function;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDevicePCIBusInfoPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDevicePCIBusInfoPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDevicePCIBusInfoPropertiesEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDevicePCIBusInfoPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDevicePCIBusInfoPropertiesEXT {
@@ -31818,6 +34439,11 @@ impl<'a> ::std::ops::Deref for ImportAndroidHardwareBufferInfoANDROIDBuilder<'a>
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImportAndroidHardwareBufferInfoANDROIDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImportAndroidHardwareBufferInfoANDROIDBuilder<'a> {
     pub fn buffer(
         mut self,
@@ -31826,11 +34452,15 @@ impl<'a> ImportAndroidHardwareBufferInfoANDROIDBuilder<'a> {
         self.inner.buffer = buffer;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImportAndroidHardwareBufferInfoANDROIDBuilder<'a>
-    where
-        T: ExtendsImportAndroidHardwareBufferInfoANDROID,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImportAndroidHardwareBufferInfoANDROID>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImportAndroidHardwareBufferInfoANDROIDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImportAndroidHardwareBufferInfoANDROID {
@@ -31873,6 +34503,11 @@ impl<'a> ::std::ops::Deref for AndroidHardwareBufferUsageANDROIDBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AndroidHardwareBufferUsageANDROIDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AndroidHardwareBufferUsageANDROIDBuilder<'a> {
     pub fn android_hardware_buffer_usage(
         mut self,
@@ -31881,11 +34516,15 @@ impl<'a> AndroidHardwareBufferUsageANDROIDBuilder<'a> {
         self.inner.android_hardware_buffer_usage = android_hardware_buffer_usage;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> AndroidHardwareBufferUsageANDROIDBuilder<'a>
-    where
-        T: ExtendsAndroidHardwareBufferUsageANDROID,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsAndroidHardwareBufferUsageANDROID>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> AndroidHardwareBufferUsageANDROIDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> AndroidHardwareBufferUsageANDROID {
@@ -31929,6 +34568,11 @@ impl<'a> ::std::ops::Deref for AndroidHardwareBufferPropertiesANDROIDBuilder<'a>
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AndroidHardwareBufferPropertiesANDROIDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AndroidHardwareBufferPropertiesANDROIDBuilder<'a> {
     pub fn allocation_size(
         mut self,
@@ -31944,11 +34588,15 @@ impl<'a> AndroidHardwareBufferPropertiesANDROIDBuilder<'a> {
         self.inner.memory_type_bits = memory_type_bits;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> AndroidHardwareBufferPropertiesANDROIDBuilder<'a>
-    where
-        T: ExtendsAndroidHardwareBufferPropertiesANDROID,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsAndroidHardwareBufferPropertiesANDROID>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> AndroidHardwareBufferPropertiesANDROIDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> AndroidHardwareBufferPropertiesANDROID {
@@ -31990,6 +34638,11 @@ impl<'a> ::std::ops::Deref for MemoryGetAndroidHardwareBufferInfoANDROIDBuilder<
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for MemoryGetAndroidHardwareBufferInfoANDROIDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> MemoryGetAndroidHardwareBufferInfoANDROIDBuilder<'a> {
     pub fn memory(
         mut self,
@@ -31998,11 +34651,15 @@ impl<'a> MemoryGetAndroidHardwareBufferInfoANDROIDBuilder<'a> {
         self.inner.memory = memory;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> MemoryGetAndroidHardwareBufferInfoANDROIDBuilder<'a>
-    where
-        T: ExtendsMemoryGetAndroidHardwareBufferInfoANDROID,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsMemoryGetAndroidHardwareBufferInfoANDROID>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> MemoryGetAndroidHardwareBufferInfoANDROIDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> MemoryGetAndroidHardwareBufferInfoANDROID {
@@ -32062,6 +34719,11 @@ impl<'a> ::std::ops::Deref for AndroidHardwareBufferFormatPropertiesANDROIDBuild
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AndroidHardwareBufferFormatPropertiesANDROIDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AndroidHardwareBufferFormatPropertiesANDROIDBuilder<'a> {
     pub fn format(
         mut self,
@@ -32119,14 +34781,15 @@ impl<'a> AndroidHardwareBufferFormatPropertiesANDROIDBuilder<'a> {
         self.inner.suggested_y_chroma_offset = suggested_y_chroma_offset;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsAndroidHardwareBufferFormatPropertiesANDROID>(
         mut self,
-        next: &'a mut T,
-    ) -> AndroidHardwareBufferFormatPropertiesANDROIDBuilder<'a>
-    where
-        T: ExtendsAndroidHardwareBufferFormatPropertiesANDROID,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> AndroidHardwareBufferFormatPropertiesANDROIDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> AndroidHardwareBufferFormatPropertiesANDROID {
@@ -32172,6 +34835,11 @@ impl<'a> ::std::ops::Deref for CommandBufferInheritanceConditionalRenderingInfoE
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for CommandBufferInheritanceConditionalRenderingInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> CommandBufferInheritanceConditionalRenderingInfoEXTBuilder<'a> {
     pub fn conditional_rendering_enable(
         mut self,
@@ -32180,14 +34848,15 @@ impl<'a> CommandBufferInheritanceConditionalRenderingInfoEXTBuilder<'a> {
         self.inner.conditional_rendering_enable = conditional_rendering_enable.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsCommandBufferInheritanceConditionalRenderingInfoEXT>(
         mut self,
-        next: &'a T,
-    ) -> CommandBufferInheritanceConditionalRenderingInfoEXTBuilder<'a>
-    where
-        T: ExtendsCommandBufferInheritanceConditionalRenderingInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> CommandBufferInheritanceConditionalRenderingInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> CommandBufferInheritanceConditionalRenderingInfoEXT {
@@ -32231,16 +34900,25 @@ impl<'a> ::std::ops::Deref for ExternalFormatANDROIDBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ExternalFormatANDROIDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ExternalFormatANDROIDBuilder<'a> {
     pub fn external_format(mut self, external_format: u64) -> ExternalFormatANDROIDBuilder<'a> {
         self.inner.external_format = external_format;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> ExternalFormatANDROIDBuilder<'a>
-    where
-        T: ExtendsExternalFormatANDROID,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsExternalFormatANDROID>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ExternalFormatANDROIDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ExternalFormatANDROID {
@@ -32288,6 +34966,11 @@ impl<'a> ::std::ops::Deref for PhysicalDevice8BitStorageFeaturesKHRBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDevice8BitStorageFeaturesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDevice8BitStorageFeaturesKHRBuilder<'a> {
     pub fn storage_buffer8_bit_access(
         mut self,
@@ -32311,11 +34994,15 @@ impl<'a> PhysicalDevice8BitStorageFeaturesKHRBuilder<'a> {
         self.inner.storage_push_constant8 = storage_push_constant8.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDevice8BitStorageFeaturesKHRBuilder<'a>
-    where
-        T: ExtendsPhysicalDevice8BitStorageFeaturesKHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDevice8BitStorageFeaturesKHR>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDevice8BitStorageFeaturesKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDevice8BitStorageFeaturesKHR {
@@ -32361,6 +35048,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceConditionalRenderingFeaturesEXTBuil
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceConditionalRenderingFeaturesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceConditionalRenderingFeaturesEXTBuilder<'a> {
     pub fn conditional_rendering(
         mut self,
@@ -32376,14 +35068,15 @@ impl<'a> PhysicalDeviceConditionalRenderingFeaturesEXTBuilder<'a> {
         self.inner.inherited_conditional_rendering = inherited_conditional_rendering.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceConditionalRenderingFeaturesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceConditionalRenderingFeaturesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceConditionalRenderingFeaturesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceConditionalRenderingFeaturesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceConditionalRenderingFeaturesEXT {
@@ -32429,6 +35122,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceVulkanMemoryModelFeaturesKHRBuilder
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceVulkanMemoryModelFeaturesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceVulkanMemoryModelFeaturesKHRBuilder<'a> {
     pub fn vulkan_memory_model(
         mut self,
@@ -32444,14 +35142,15 @@ impl<'a> PhysicalDeviceVulkanMemoryModelFeaturesKHRBuilder<'a> {
         self.inner.vulkan_memory_model_device_scope = vulkan_memory_model_device_scope.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceVulkanMemoryModelFeaturesKHR>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceVulkanMemoryModelFeaturesKHRBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceVulkanMemoryModelFeaturesKHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceVulkanMemoryModelFeaturesKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceVulkanMemoryModelFeaturesKHR {
@@ -32497,6 +35196,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceShaderAtomicInt64FeaturesKHRBuilder
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceShaderAtomicInt64FeaturesKHRBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceShaderAtomicInt64FeaturesKHRBuilder<'a> {
     pub fn shader_buffer_int64_atomics(
         mut self,
@@ -32512,14 +35216,15 @@ impl<'a> PhysicalDeviceShaderAtomicInt64FeaturesKHRBuilder<'a> {
         self.inner.shader_shared_int64_atomics = shader_shared_int64_atomics.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceShaderAtomicInt64FeaturesKHR>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceShaderAtomicInt64FeaturesKHRBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceShaderAtomicInt64FeaturesKHR,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceShaderAtomicInt64FeaturesKHRBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceShaderAtomicInt64FeaturesKHR {
@@ -32565,6 +35270,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceVertexAttributeDivisorFeaturesEXTBu
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceVertexAttributeDivisorFeaturesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceVertexAttributeDivisorFeaturesEXTBuilder<'a> {
     pub fn vertex_attribute_instance_rate_divisor(
         mut self,
@@ -32582,14 +35292,15 @@ impl<'a> PhysicalDeviceVertexAttributeDivisorFeaturesEXTBuilder<'a> {
             vertex_attribute_instance_rate_zero_divisor.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceVertexAttributeDivisorFeaturesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceVertexAttributeDivisorFeaturesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceVertexAttributeDivisorFeaturesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceVertexAttributeDivisorFeaturesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceVertexAttributeDivisorFeaturesEXT {
@@ -32632,6 +35343,11 @@ impl<'a> ::std::ops::Deref for QueueFamilyCheckpointPropertiesNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for QueueFamilyCheckpointPropertiesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> QueueFamilyCheckpointPropertiesNVBuilder<'a> {
     pub fn checkpoint_execution_stage_mask(
         mut self,
@@ -32640,11 +35356,15 @@ impl<'a> QueueFamilyCheckpointPropertiesNVBuilder<'a> {
         self.inner.checkpoint_execution_stage_mask = checkpoint_execution_stage_mask;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> QueueFamilyCheckpointPropertiesNVBuilder<'a>
-    where
-        T: ExtendsQueueFamilyCheckpointPropertiesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsQueueFamilyCheckpointPropertiesNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> QueueFamilyCheckpointPropertiesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> QueueFamilyCheckpointPropertiesNV {
@@ -32688,6 +35408,11 @@ impl<'a> ::std::ops::Deref for CheckpointDataNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for CheckpointDataNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> CheckpointDataNVBuilder<'a> {
     pub fn stage(mut self, stage: PipelineStageFlags) -> CheckpointDataNVBuilder<'a> {
         self.inner.stage = stage;
@@ -32700,11 +35425,15 @@ impl<'a> CheckpointDataNVBuilder<'a> {
         self.inner.p_checkpoint_marker = checkpoint_marker;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> CheckpointDataNVBuilder<'a>
-    where
-        T: ExtendsCheckpointDataNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsCheckpointDataNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> CheckpointDataNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> CheckpointDataNV {
@@ -32747,16 +35476,25 @@ impl<'a> ::std::ops::Deref for ImageViewASTCDecodeModeEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageViewASTCDecodeModeEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageViewASTCDecodeModeEXTBuilder<'a> {
     pub fn decode_mode(mut self, decode_mode: Format) -> ImageViewASTCDecodeModeEXTBuilder<'a> {
         self.inner.decode_mode = decode_mode;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageViewASTCDecodeModeEXTBuilder<'a>
-    where
-        T: ExtendsImageViewASTCDecodeModeEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageViewASTCDecodeModeEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageViewASTCDecodeModeEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageViewASTCDecodeModeEXT {
@@ -32800,6 +35538,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceASTCDecodeFeaturesEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceASTCDecodeFeaturesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceASTCDecodeFeaturesEXTBuilder<'a> {
     pub fn decode_mode_shared_exponent(
         mut self,
@@ -32808,11 +35551,15 @@ impl<'a> PhysicalDeviceASTCDecodeFeaturesEXTBuilder<'a> {
         self.inner.decode_mode_shared_exponent = decode_mode_shared_exponent.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceASTCDecodeFeaturesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceASTCDecodeFeaturesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceASTCDecodeFeaturesEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceASTCDecodeFeaturesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceASTCDecodeFeaturesEXT {
@@ -32858,6 +35605,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceTransformFeedbackFeaturesEXTBuilder
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceTransformFeedbackFeaturesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceTransformFeedbackFeaturesEXTBuilder<'a> {
     pub fn transform_feedback(
         mut self,
@@ -32873,14 +35625,15 @@ impl<'a> PhysicalDeviceTransformFeedbackFeaturesEXTBuilder<'a> {
         self.inner.geometry_streams = geometry_streams.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceTransformFeedbackFeaturesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceTransformFeedbackFeaturesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceTransformFeedbackFeaturesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceTransformFeedbackFeaturesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceTransformFeedbackFeaturesEXT {
@@ -32939,6 +35692,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceTransformFeedbackPropertiesEXTBuild
     type Target = PhysicalDeviceTransformFeedbackPropertiesEXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceTransformFeedbackPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDeviceTransformFeedbackPropertiesEXTBuilder<'a> {
@@ -33017,14 +35775,15 @@ impl<'a> PhysicalDeviceTransformFeedbackPropertiesEXTBuilder<'a> {
         self.inner.transform_feedback_draw = transform_feedback_draw.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceTransformFeedbackPropertiesEXT>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceTransformFeedbackPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceTransformFeedbackPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceTransformFeedbackPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceTransformFeedbackPropertiesEXT {
@@ -33072,6 +35831,11 @@ impl<'a> ::std::ops::Deref for PipelineRasterizationStateStreamCreateInfoEXTBuil
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineRasterizationStateStreamCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineRasterizationStateStreamCreateInfoEXTBuilder<'a> {
     pub fn flags(
         mut self,
@@ -33087,14 +35851,15 @@ impl<'a> PipelineRasterizationStateStreamCreateInfoEXTBuilder<'a> {
         self.inner.rasterization_stream = rasterization_stream;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPipelineRasterizationStateStreamCreateInfoEXT>(
         mut self,
-        next: &'a T,
-    ) -> PipelineRasterizationStateStreamCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsPipelineRasterizationStateStreamCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineRasterizationStateStreamCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineRasterizationStateStreamCreateInfoEXT {
@@ -33138,6 +35903,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceRepresentativeFragmentTestFeaturesN
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceRepresentativeFragmentTestFeaturesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceRepresentativeFragmentTestFeaturesNVBuilder<'a> {
     pub fn representative_fragment_test(
         mut self,
@@ -33146,14 +35916,15 @@ impl<'a> PhysicalDeviceRepresentativeFragmentTestFeaturesNVBuilder<'a> {
         self.inner.representative_fragment_test = representative_fragment_test.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceRepresentativeFragmentTestFeaturesNV>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceRepresentativeFragmentTestFeaturesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceRepresentativeFragmentTestFeaturesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceRepresentativeFragmentTestFeaturesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceRepresentativeFragmentTestFeaturesNV {
@@ -33199,6 +35970,11 @@ impl<'a> ::std::ops::Deref for PipelineRepresentativeFragmentTestStateCreateInfo
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineRepresentativeFragmentTestStateCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineRepresentativeFragmentTestStateCreateInfoNVBuilder<'a> {
     pub fn representative_fragment_test_enable(
         mut self,
@@ -33207,14 +35983,15 @@ impl<'a> PipelineRepresentativeFragmentTestStateCreateInfoNVBuilder<'a> {
         self.inner.representative_fragment_test_enable = representative_fragment_test_enable.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPipelineRepresentativeFragmentTestStateCreateInfoNV>(
         mut self,
-        next: &'a T,
-    ) -> PipelineRepresentativeFragmentTestStateCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsPipelineRepresentativeFragmentTestStateCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineRepresentativeFragmentTestStateCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineRepresentativeFragmentTestStateCreateInfoNV {
@@ -33258,6 +36035,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceExclusiveScissorFeaturesNVBuilder<'
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceExclusiveScissorFeaturesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceExclusiveScissorFeaturesNVBuilder<'a> {
     pub fn exclusive_scissor(
         mut self,
@@ -33266,11 +36048,15 @@ impl<'a> PhysicalDeviceExclusiveScissorFeaturesNVBuilder<'a> {
         self.inner.exclusive_scissor = exclusive_scissor.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceExclusiveScissorFeaturesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceExclusiveScissorFeaturesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceExclusiveScissorFeaturesNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceExclusiveScissorFeaturesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceExclusiveScissorFeaturesNV {
@@ -33318,6 +36104,11 @@ impl<'a> ::std::ops::Deref for PipelineViewportExclusiveScissorStateCreateInfoNV
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineViewportExclusiveScissorStateCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineViewportExclusiveScissorStateCreateInfoNVBuilder<'a> {
     pub fn exclusive_scissors(
         mut self,
@@ -33327,14 +36118,15 @@ impl<'a> PipelineViewportExclusiveScissorStateCreateInfoNVBuilder<'a> {
         self.inner.p_exclusive_scissors = exclusive_scissors.as_ptr();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPipelineViewportExclusiveScissorStateCreateInfoNV>(
         mut self,
-        next: &'a T,
-    ) -> PipelineViewportExclusiveScissorStateCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsPipelineViewportExclusiveScissorStateCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineViewportExclusiveScissorStateCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineViewportExclusiveScissorStateCreateInfoNV {
@@ -33378,6 +36170,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceCornerSampledImageFeaturesNVBuilder
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceCornerSampledImageFeaturesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceCornerSampledImageFeaturesNVBuilder<'a> {
     pub fn corner_sampled_image(
         mut self,
@@ -33386,14 +36183,15 @@ impl<'a> PhysicalDeviceCornerSampledImageFeaturesNVBuilder<'a> {
         self.inner.corner_sampled_image = corner_sampled_image.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceCornerSampledImageFeaturesNV>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceCornerSampledImageFeaturesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceCornerSampledImageFeaturesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceCornerSampledImageFeaturesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceCornerSampledImageFeaturesNV {
@@ -33439,6 +36237,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceComputeShaderDerivativesFeaturesNVB
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceComputeShaderDerivativesFeaturesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceComputeShaderDerivativesFeaturesNVBuilder<'a> {
     pub fn compute_derivative_group_quads(
         mut self,
@@ -33454,14 +36257,15 @@ impl<'a> PhysicalDeviceComputeShaderDerivativesFeaturesNVBuilder<'a> {
         self.inner.compute_derivative_group_linear = compute_derivative_group_linear.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceComputeShaderDerivativesFeaturesNV>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceComputeShaderDerivativesFeaturesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceComputeShaderDerivativesFeaturesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceComputeShaderDerivativesFeaturesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceComputeShaderDerivativesFeaturesNV {
@@ -33505,6 +36309,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceFragmentShaderBarycentricFeaturesNV
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceFragmentShaderBarycentricFeaturesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceFragmentShaderBarycentricFeaturesNVBuilder<'a> {
     pub fn fragment_shader_barycentric(
         mut self,
@@ -33513,14 +36322,15 @@ impl<'a> PhysicalDeviceFragmentShaderBarycentricFeaturesNVBuilder<'a> {
         self.inner.fragment_shader_barycentric = fragment_shader_barycentric.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceFragmentShaderBarycentricFeaturesNV>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceFragmentShaderBarycentricFeaturesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceFragmentShaderBarycentricFeaturesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceFragmentShaderBarycentricFeaturesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceFragmentShaderBarycentricFeaturesNV {
@@ -33564,6 +36374,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceShaderImageFootprintFeaturesNVBuild
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceShaderImageFootprintFeaturesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceShaderImageFootprintFeaturesNVBuilder<'a> {
     pub fn image_footprint(
         mut self,
@@ -33572,14 +36387,15 @@ impl<'a> PhysicalDeviceShaderImageFootprintFeaturesNVBuilder<'a> {
         self.inner.image_footprint = image_footprint.into();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceShaderImageFootprintFeaturesNV>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceShaderImageFootprintFeaturesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceShaderImageFootprintFeaturesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceShaderImageFootprintFeaturesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceShaderImageFootprintFeaturesNV {
@@ -33616,6 +36432,11 @@ impl<'a> ::std::ops::Deref for ShadingRatePaletteNVBuilder<'a> {
     type Target = ShadingRatePaletteNV;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for ShadingRatePaletteNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> ShadingRatePaletteNVBuilder<'a> {
@@ -33674,6 +36495,11 @@ impl<'a> ::std::ops::Deref for PipelineViewportShadingRateImageStateCreateInfoNV
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineViewportShadingRateImageStateCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineViewportShadingRateImageStateCreateInfoNVBuilder<'a> {
     pub fn shading_rate_image_enable(
         mut self,
@@ -33690,14 +36516,15 @@ impl<'a> PipelineViewportShadingRateImageStateCreateInfoNVBuilder<'a> {
         self.inner.p_shading_rate_palettes = shading_rate_palettes.as_ptr();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPipelineViewportShadingRateImageStateCreateInfoNV>(
         mut self,
-        next: &'a T,
-    ) -> PipelineViewportShadingRateImageStateCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsPipelineViewportShadingRateImageStateCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineViewportShadingRateImageStateCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineViewportShadingRateImageStateCreateInfoNV {
@@ -33743,6 +36570,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceShadingRateImageFeaturesNVBuilder<'
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceShadingRateImageFeaturesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceShadingRateImageFeaturesNVBuilder<'a> {
     pub fn shading_rate_image(
         mut self,
@@ -33758,11 +36590,15 @@ impl<'a> PhysicalDeviceShadingRateImageFeaturesNVBuilder<'a> {
         self.inner.shading_rate_coarse_sample_order = shading_rate_coarse_sample_order.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceShadingRateImageFeaturesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceShadingRateImageFeaturesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceShadingRateImageFeaturesNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceShadingRateImageFeaturesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceShadingRateImageFeaturesNV {
@@ -33809,6 +36645,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceShadingRateImagePropertiesNVBuilder
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceShadingRateImagePropertiesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceShadingRateImagePropertiesNVBuilder<'a> {
     pub fn shading_rate_texel_size(
         mut self,
@@ -33831,14 +36672,15 @@ impl<'a> PhysicalDeviceShadingRateImagePropertiesNVBuilder<'a> {
         self.inner.shading_rate_max_coarse_samples = shading_rate_max_coarse_samples;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPhysicalDeviceShadingRateImagePropertiesNV>(
         mut self,
-        next: &'a mut T,
-    ) -> PhysicalDeviceShadingRateImagePropertiesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceShadingRateImagePropertiesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceShadingRateImagePropertiesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceShadingRateImagePropertiesNV {
@@ -33868,6 +36710,11 @@ impl<'a> ::std::ops::Deref for CoarseSampleLocationNVBuilder<'a> {
     type Target = CoarseSampleLocationNV;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for CoarseSampleLocationNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> CoarseSampleLocationNVBuilder<'a> {
@@ -33921,6 +36768,11 @@ impl<'a> ::std::ops::Deref for CoarseSampleOrderCustomNVBuilder<'a> {
     type Target = CoarseSampleOrderCustomNV;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for CoarseSampleOrderCustomNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> CoarseSampleOrderCustomNVBuilder<'a> {
@@ -33990,6 +36842,11 @@ impl<'a> ::std::ops::Deref for PipelineViewportCoarseSampleOrderStateCreateInfoN
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PipelineViewportCoarseSampleOrderStateCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PipelineViewportCoarseSampleOrderStateCreateInfoNVBuilder<'a> {
     pub fn sample_order_type(
         mut self,
@@ -34006,14 +36863,15 @@ impl<'a> PipelineViewportCoarseSampleOrderStateCreateInfoNVBuilder<'a> {
         self.inner.p_custom_sample_orders = custom_sample_orders.as_ptr();
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsPipelineViewportCoarseSampleOrderStateCreateInfoNV>(
         mut self,
-        next: &'a T,
-    ) -> PipelineViewportCoarseSampleOrderStateCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsPipelineViewportCoarseSampleOrderStateCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PipelineViewportCoarseSampleOrderStateCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PipelineViewportCoarseSampleOrderStateCreateInfoNV {
@@ -34059,6 +36917,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceMeshShaderFeaturesNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceMeshShaderFeaturesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceMeshShaderFeaturesNVBuilder<'a> {
     pub fn task_shader(
         mut self,
@@ -34074,11 +36937,15 @@ impl<'a> PhysicalDeviceMeshShaderFeaturesNVBuilder<'a> {
         self.inner.mesh_shader = mesh_shader.into();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceMeshShaderFeaturesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceMeshShaderFeaturesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceMeshShaderFeaturesNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceMeshShaderFeaturesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceMeshShaderFeaturesNV {
@@ -34143,6 +37010,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceMeshShaderPropertiesNVBuilder<'a> {
     type Target = PhysicalDeviceMeshShaderPropertiesNV;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceMeshShaderPropertiesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDeviceMeshShaderPropertiesNVBuilder<'a> {
@@ -34237,11 +37109,15 @@ impl<'a> PhysicalDeviceMeshShaderPropertiesNVBuilder<'a> {
         self.inner.mesh_output_per_primitive_granularity = mesh_output_per_primitive_granularity;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceMeshShaderPropertiesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceMeshShaderPropertiesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceMeshShaderPropertiesNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceMeshShaderPropertiesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceMeshShaderPropertiesNV {
@@ -34270,6 +37146,11 @@ impl<'a> ::std::ops::Deref for DrawMeshTasksIndirectCommandNVBuilder<'a> {
     type Target = DrawMeshTasksIndirectCommandNV;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DrawMeshTasksIndirectCommandNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DrawMeshTasksIndirectCommandNVBuilder<'a> {
@@ -34328,6 +37209,11 @@ impl<'a> ::std::ops::Deref for RayTracingShaderGroupCreateInfoNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for RayTracingShaderGroupCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> RayTracingShaderGroupCreateInfoNVBuilder<'a> {
     pub fn ty(
         mut self,
@@ -34364,11 +37250,15 @@ impl<'a> RayTracingShaderGroupCreateInfoNVBuilder<'a> {
         self.inner.intersection_shader = intersection_shader;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> RayTracingShaderGroupCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsRayTracingShaderGroupCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsRayTracingShaderGroupCreateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> RayTracingShaderGroupCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> RayTracingShaderGroupCreateInfoNV {
@@ -34426,6 +37316,11 @@ impl<'a> ::std::ops::Deref for RayTracingPipelineCreateInfoNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for RayTracingPipelineCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> RayTracingPipelineCreateInfoNVBuilder<'a> {
     pub fn flags(
         mut self,
@@ -34475,11 +37370,15 @@ impl<'a> RayTracingPipelineCreateInfoNVBuilder<'a> {
         self.inner.base_pipeline_index = base_pipeline_index;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> RayTracingPipelineCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsRayTracingPipelineCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsRayTracingPipelineCreateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> RayTracingPipelineCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> RayTracingPipelineCreateInfoNV {
@@ -34541,6 +37440,11 @@ impl<'a> ::std::ops::Deref for GeometryTrianglesNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for GeometryTrianglesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> GeometryTrianglesNVBuilder<'a> {
     pub fn vertex_data(mut self, vertex_data: Buffer) -> GeometryTrianglesNVBuilder<'a> {
         self.inner.vertex_data = vertex_data;
@@ -34589,11 +37493,15 @@ impl<'a> GeometryTrianglesNVBuilder<'a> {
         self.inner.transform_offset = transform_offset;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> GeometryTrianglesNVBuilder<'a>
-    where
-        T: ExtendsGeometryTrianglesNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsGeometryTrianglesNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> GeometryTrianglesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> GeometryTrianglesNV {
@@ -34641,6 +37549,11 @@ impl<'a> ::std::ops::Deref for GeometryAABBNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for GeometryAABBNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> GeometryAABBNVBuilder<'a> {
     pub fn aabb_data(mut self, aabb_data: Buffer) -> GeometryAABBNVBuilder<'a> {
         self.inner.aabb_data = aabb_data;
@@ -34658,11 +37571,15 @@ impl<'a> GeometryAABBNVBuilder<'a> {
         self.inner.offset = offset;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> GeometryAABBNVBuilder<'a>
-    where
-        T: ExtendsGeometryAABBNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsGeometryAABBNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> GeometryAABBNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> GeometryAABBNV {
@@ -34691,6 +37608,11 @@ impl<'a> ::std::ops::Deref for GeometryDataNVBuilder<'a> {
     type Target = GeometryDataNV;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for GeometryDataNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> GeometryDataNVBuilder<'a> {
@@ -34745,6 +37667,11 @@ impl<'a> ::std::ops::Deref for GeometryNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for GeometryNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> GeometryNVBuilder<'a> {
     pub fn geometry_type(mut self, geometry_type: GeometryTypeNV) -> GeometryNVBuilder<'a> {
         self.inner.geometry_type = geometry_type;
@@ -34758,11 +37685,15 @@ impl<'a> GeometryNVBuilder<'a> {
         self.inner.flags = flags;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> GeometryNVBuilder<'a>
-    where
-        T: ExtendsGeometryNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsGeometryNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> GeometryNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> GeometryNV {
@@ -34812,6 +37743,11 @@ impl<'a> ::std::ops::Deref for AccelerationStructureInfoNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AccelerationStructureInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AccelerationStructureInfoNVBuilder<'a> {
     pub fn ty(mut self, ty: AccelerationStructureTypeNV) -> AccelerationStructureInfoNVBuilder<'a> {
         self.inner.ty = ty;
@@ -34836,11 +37772,15 @@ impl<'a> AccelerationStructureInfoNVBuilder<'a> {
         self.inner.p_geometries = geometries.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> AccelerationStructureInfoNVBuilder<'a>
-    where
-        T: ExtendsAccelerationStructureInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsAccelerationStructureInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> AccelerationStructureInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> AccelerationStructureInfoNV {
@@ -34884,6 +37824,11 @@ impl<'a> ::std::ops::Deref for AccelerationStructureCreateInfoNVBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AccelerationStructureCreateInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AccelerationStructureCreateInfoNVBuilder<'a> {
     pub fn compacted_size(
         mut self,
@@ -34899,11 +37844,15 @@ impl<'a> AccelerationStructureCreateInfoNVBuilder<'a> {
         self.inner.info = info;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> AccelerationStructureCreateInfoNVBuilder<'a>
-    where
-        T: ExtendsAccelerationStructureCreateInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsAccelerationStructureCreateInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> AccelerationStructureCreateInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> AccelerationStructureCreateInfoNV {
@@ -34953,6 +37902,11 @@ impl<'a> ::std::ops::Deref for BindAccelerationStructureMemoryInfoNVBuilder<'a> 
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for BindAccelerationStructureMemoryInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> BindAccelerationStructureMemoryInfoNVBuilder<'a> {
     pub fn acceleration_structure(
         mut self,
@@ -34983,11 +37937,15 @@ impl<'a> BindAccelerationStructureMemoryInfoNVBuilder<'a> {
         self.inner.p_device_indices = device_indices.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> BindAccelerationStructureMemoryInfoNVBuilder<'a>
-    where
-        T: ExtendsBindAccelerationStructureMemoryInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsBindAccelerationStructureMemoryInfoNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> BindAccelerationStructureMemoryInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> BindAccelerationStructureMemoryInfoNV {
@@ -35032,6 +37990,11 @@ impl<'a> ::std::ops::Deref for WriteDescriptorSetAccelerationStructureNVBuilder<
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for WriteDescriptorSetAccelerationStructureNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> WriteDescriptorSetAccelerationStructureNVBuilder<'a> {
     pub fn acceleration_structures(
         mut self,
@@ -35041,11 +38004,15 @@ impl<'a> WriteDescriptorSetAccelerationStructureNVBuilder<'a> {
         self.inner.p_acceleration_structures = acceleration_structures.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> WriteDescriptorSetAccelerationStructureNVBuilder<'a>
-    where
-        T: ExtendsWriteDescriptorSetAccelerationStructureNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsWriteDescriptorSetAccelerationStructureNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> WriteDescriptorSetAccelerationStructureNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> WriteDescriptorSetAccelerationStructureNV {
@@ -35089,6 +38056,11 @@ impl<'a> ::std::ops::Deref for AccelerationStructureMemoryRequirementsInfoNVBuil
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for AccelerationStructureMemoryRequirementsInfoNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> AccelerationStructureMemoryRequirementsInfoNVBuilder<'a> {
     pub fn ty(
         mut self,
@@ -35104,14 +38076,15 @@ impl<'a> AccelerationStructureMemoryRequirementsInfoNVBuilder<'a> {
         self.inner.acceleration_structure = acceleration_structure;
         self
     }
-    pub fn next<T>(
+    pub fn next<T: ExtendsAccelerationStructureMemoryRequirementsInfoNV>(
         mut self,
-        next: &'a T,
-    ) -> AccelerationStructureMemoryRequirementsInfoNVBuilder<'a>
-    where
-        T: ExtendsAccelerationStructureMemoryRequirementsInfoNV,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> AccelerationStructureMemoryRequirementsInfoNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> AccelerationStructureMemoryRequirementsInfoNV {
@@ -35166,6 +38139,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceRayTracingPropertiesNVBuilder<'a> {
     type Target = PhysicalDeviceRayTracingPropertiesNV;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceRayTracingPropertiesNVBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> PhysicalDeviceRayTracingPropertiesNVBuilder<'a> {
@@ -35226,11 +38204,15 @@ impl<'a> PhysicalDeviceRayTracingPropertiesNVBuilder<'a> {
             max_descriptor_set_acceleration_structures;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> PhysicalDeviceRayTracingPropertiesNVBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceRayTracingPropertiesNV,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsPhysicalDeviceRayTracingPropertiesNV>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceRayTracingPropertiesNVBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceRayTracingPropertiesNV {
@@ -35275,6 +38257,11 @@ impl<'a> ::std::ops::Deref for DrmFormatModifierPropertiesListEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DrmFormatModifierPropertiesListEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DrmFormatModifierPropertiesListEXTBuilder<'a> {
     pub fn drm_format_modifier_properties(
         mut self,
@@ -35284,11 +38271,15 @@ impl<'a> DrmFormatModifierPropertiesListEXTBuilder<'a> {
         self.inner.p_drm_format_modifier_properties = drm_format_modifier_properties.as_mut_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> DrmFormatModifierPropertiesListEXTBuilder<'a>
-    where
-        T: ExtendsDrmFormatModifierPropertiesListEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsDrmFormatModifierPropertiesListEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DrmFormatModifierPropertiesListEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DrmFormatModifierPropertiesListEXT {
@@ -35318,6 +38309,11 @@ impl<'a> ::std::ops::Deref for DrmFormatModifierPropertiesEXTBuilder<'a> {
     type Target = DrmFormatModifierPropertiesEXT;
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+impl<'a> ::std::ops::DerefMut for DrmFormatModifierPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<'a> DrmFormatModifierPropertiesEXTBuilder<'a> {
@@ -35388,6 +38384,11 @@ impl<'a> ::std::ops::Deref for PhysicalDeviceImageDrmFormatModifierInfoEXTBuilde
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for PhysicalDeviceImageDrmFormatModifierInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> PhysicalDeviceImageDrmFormatModifierInfoEXTBuilder<'a> {
     pub fn drm_format_modifier(
         mut self,
@@ -35411,11 +38412,15 @@ impl<'a> PhysicalDeviceImageDrmFormatModifierInfoEXTBuilder<'a> {
         self.inner.p_queue_family_indices = queue_family_indices.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> PhysicalDeviceImageDrmFormatModifierInfoEXTBuilder<'a>
-    where
-        T: ExtendsPhysicalDeviceImageDrmFormatModifierInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsPhysicalDeviceImageDrmFormatModifierInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> PhysicalDeviceImageDrmFormatModifierInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> PhysicalDeviceImageDrmFormatModifierInfoEXT {
@@ -35460,6 +38465,11 @@ impl<'a> ::std::ops::Deref for ImageDrmFormatModifierListCreateInfoEXTBuilder<'a
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageDrmFormatModifierListCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageDrmFormatModifierListCreateInfoEXTBuilder<'a> {
     pub fn drm_format_modifiers(
         mut self,
@@ -35469,11 +38479,15 @@ impl<'a> ImageDrmFormatModifierListCreateInfoEXTBuilder<'a> {
         self.inner.p_drm_format_modifiers = drm_format_modifiers.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageDrmFormatModifierListCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsImageDrmFormatModifierListCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageDrmFormatModifierListCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageDrmFormatModifierListCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageDrmFormatModifierListCreateInfoEXT {
@@ -35520,6 +38534,11 @@ impl<'a> ::std::ops::Deref for ImageDrmFormatModifierExplicitCreateInfoEXTBuilde
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageDrmFormatModifierExplicitCreateInfoEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageDrmFormatModifierExplicitCreateInfoEXTBuilder<'a> {
     pub fn drm_format_modifier(
         mut self,
@@ -35536,11 +38555,15 @@ impl<'a> ImageDrmFormatModifierExplicitCreateInfoEXTBuilder<'a> {
         self.inner.p_plane_layouts = plane_layouts.as_ptr();
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> ImageDrmFormatModifierExplicitCreateInfoEXTBuilder<'a>
-    where
-        T: ExtendsImageDrmFormatModifierExplicitCreateInfoEXT,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsImageDrmFormatModifierExplicitCreateInfoEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageDrmFormatModifierExplicitCreateInfoEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageDrmFormatModifierExplicitCreateInfoEXT {
@@ -35582,6 +38605,11 @@ impl<'a> ::std::ops::Deref for ImageDrmFormatModifierPropertiesEXTBuilder<'a> {
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for ImageDrmFormatModifierPropertiesEXTBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> ImageDrmFormatModifierPropertiesEXTBuilder<'a> {
     pub fn drm_format_modifier(
         mut self,
@@ -35590,11 +38618,15 @@ impl<'a> ImageDrmFormatModifierPropertiesEXTBuilder<'a> {
         self.inner.drm_format_modifier = drm_format_modifier;
         self
     }
-    pub fn next<T>(mut self, next: &'a mut T) -> ImageDrmFormatModifierPropertiesEXTBuilder<'a>
-    where
-        T: ExtendsImageDrmFormatModifierPropertiesEXT,
-    {
-        self.inner.p_next = next as *mut T as *mut c_void;
+    pub fn next<T: ExtendsImageDrmFormatModifierPropertiesEXT>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> ImageDrmFormatModifierPropertiesEXTBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> ImageDrmFormatModifierPropertiesEXT {
@@ -35637,6 +38669,11 @@ impl<'a> ::std::ops::Deref for DeviceMemoryOverallocationCreateInfoAMDBuilder<'a
         &self.inner
     }
 }
+impl<'a> ::std::ops::DerefMut for DeviceMemoryOverallocationCreateInfoAMDBuilder<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
 impl<'a> DeviceMemoryOverallocationCreateInfoAMDBuilder<'a> {
     pub fn overallocation_behavior(
         mut self,
@@ -35645,11 +38682,15 @@ impl<'a> DeviceMemoryOverallocationCreateInfoAMDBuilder<'a> {
         self.inner.overallocation_behavior = overallocation_behavior;
         self
     }
-    pub fn next<T>(mut self, next: &'a T) -> DeviceMemoryOverallocationCreateInfoAMDBuilder<'a>
-    where
-        T: ExtendsDeviceMemoryOverallocationCreateInfoAMD,
-    {
-        self.inner.p_next = next as *const T as *const c_void;
+    pub fn next<T: ExtendsDeviceMemoryOverallocationCreateInfoAMD>(
+        mut self,
+        next: &'a mut impl ::std::ops::DerefMut<Target = T>,
+    ) -> DeviceMemoryOverallocationCreateInfoAMDBuilder<'a> {
+        unsafe {
+            let ptr = &mut self.inner as *mut _ as *mut c_void;
+            let last_extension = ExtensionChain::last_chain(ptr);
+            (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
+        }
         self
     }
     pub fn build(self) -> DeviceMemoryOverallocationCreateInfoAMD {
@@ -51327,98 +54368,131 @@ fn display_flags(
     }
     Ok(())
 }
-impl fmt::Display for ImageLayout {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::UNDEFINED => Some("UNDEFINED"),
-            Self::GENERAL => Some("GENERAL"),
-            Self::COLOR_ATTACHMENT_OPTIMAL => Some("COLOR_ATTACHMENT_OPTIMAL"),
-            Self::DEPTH_STENCIL_ATTACHMENT_OPTIMAL => Some("DEPTH_STENCIL_ATTACHMENT_OPTIMAL"),
-            Self::DEPTH_STENCIL_READ_ONLY_OPTIMAL => Some("DEPTH_STENCIL_READ_ONLY_OPTIMAL"),
-            Self::SHADER_READ_ONLY_OPTIMAL => Some("SHADER_READ_ONLY_OPTIMAL"),
-            Self::TRANSFER_SRC_OPTIMAL => Some("TRANSFER_SRC_OPTIMAL"),
-            Self::TRANSFER_DST_OPTIMAL => Some("TRANSFER_DST_OPTIMAL"),
-            Self::PREINITIALIZED => Some("PREINITIALIZED"),
-            Self::PRESENT_SRC_KHR => Some("PRESENT_SRC_KHR"),
-            Self::SHARED_PRESENT_KHR => Some("SHARED_PRESENT_KHR"),
-            Self::SHADING_RATE_OPTIMAL_NV => Some("SHADING_RATE_OPTIMAL_NV"),
-            Self::DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL => {
-                Some("DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL")
-            }
-            Self::DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL => {
-                Some("DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL")
-            }
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ValidationCheckEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::ALL => Some("ALL"),
-            Self::SHADERS => Some("SHADERS"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for QueryPipelineStatisticFlags {
+impl fmt::Display for DescriptorSetLayoutCreateFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
             (
-                QueryPipelineStatisticFlags::INPUT_ASSEMBLY_VERTICES.0,
-                "INPUT_ASSEMBLY_VERTICES",
+                DescriptorSetLayoutCreateFlags::PUSH_DESCRIPTOR_KHR.0,
+                "PUSH_DESCRIPTOR_KHR",
             ),
             (
-                QueryPipelineStatisticFlags::INPUT_ASSEMBLY_PRIMITIVES.0,
-                "INPUT_ASSEMBLY_PRIMITIVES",
-            ),
-            (
-                QueryPipelineStatisticFlags::VERTEX_SHADER_INVOCATIONS.0,
-                "VERTEX_SHADER_INVOCATIONS",
-            ),
-            (
-                QueryPipelineStatisticFlags::GEOMETRY_SHADER_INVOCATIONS.0,
-                "GEOMETRY_SHADER_INVOCATIONS",
-            ),
-            (
-                QueryPipelineStatisticFlags::GEOMETRY_SHADER_PRIMITIVES.0,
-                "GEOMETRY_SHADER_PRIMITIVES",
-            ),
-            (
-                QueryPipelineStatisticFlags::CLIPPING_INVOCATIONS.0,
-                "CLIPPING_INVOCATIONS",
-            ),
-            (
-                QueryPipelineStatisticFlags::CLIPPING_PRIMITIVES.0,
-                "CLIPPING_PRIMITIVES",
-            ),
-            (
-                QueryPipelineStatisticFlags::FRAGMENT_SHADER_INVOCATIONS.0,
-                "FRAGMENT_SHADER_INVOCATIONS",
-            ),
-            (
-                QueryPipelineStatisticFlags::TESSELLATION_CONTROL_SHADER_PATCHES.0,
-                "TESSELLATION_CONTROL_SHADER_PATCHES",
-            ),
-            (
-                QueryPipelineStatisticFlags::TESSELLATION_EVALUATION_SHADER_INVOCATIONS.0,
-                "TESSELLATION_EVALUATION_SHADER_INVOCATIONS",
-            ),
-            (
-                QueryPipelineStatisticFlags::COMPUTE_SHADER_INVOCATIONS.0,
-                "COMPUTE_SHADER_INVOCATIONS",
+                DescriptorSetLayoutCreateFlags::UPDATE_AFTER_BIND_POOL_EXT.0,
+                "UPDATE_AFTER_BIND_POOL_EXT",
             ),
         ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for AccelerationStructureMemoryRequirementsTypeNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::OBJECT => Some("OBJECT"),
+            Self::BUILD_SCRATCH => Some("BUILD_SCRATCH"),
+            Self::UPDATE_SCRATCH => Some("UPDATE_SCRATCH"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for CopyAccelerationStructureModeNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::CLONE => Some("CLONE"),
+            Self::COMPACT => Some("COMPACT"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for AccelerationStructureTypeNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::TOP_LEVEL => Some("TOP_LEVEL"),
+            Self::BOTTOM_LEVEL => Some("BOTTOM_LEVEL"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ColorSpaceKHR {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::SRGB_NONLINEAR => Some("SRGB_NONLINEAR"),
+            Self::DISPLAY_P3_NONLINEAR_EXT => Some("DISPLAY_P3_NONLINEAR_EXT"),
+            Self::EXTENDED_SRGB_LINEAR_EXT => Some("EXTENDED_SRGB_LINEAR_EXT"),
+            Self::DCI_P3_LINEAR_EXT => Some("DCI_P3_LINEAR_EXT"),
+            Self::DCI_P3_NONLINEAR_EXT => Some("DCI_P3_NONLINEAR_EXT"),
+            Self::BT709_LINEAR_EXT => Some("BT709_LINEAR_EXT"),
+            Self::BT709_NONLINEAR_EXT => Some("BT709_NONLINEAR_EXT"),
+            Self::BT2020_LINEAR_EXT => Some("BT2020_LINEAR_EXT"),
+            Self::HDR10_ST2084_EXT => Some("HDR10_ST2084_EXT"),
+            Self::DOLBYVISION_EXT => Some("DOLBYVISION_EXT"),
+            Self::HDR10_HLG_EXT => Some("HDR10_HLG_EXT"),
+            Self::ADOBERGB_LINEAR_EXT => Some("ADOBERGB_LINEAR_EXT"),
+            Self::ADOBERGB_NONLINEAR_EXT => Some("ADOBERGB_NONLINEAR_EXT"),
+            Self::PASS_THROUGH_EXT => Some("PASS_THROUGH_EXT"),
+            Self::EXTENDED_SRGB_NONLINEAR_EXT => Some("EXTENDED_SRGB_NONLINEAR_EXT"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ObjectEntryTypeNVX {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::DESCRIPTOR_SET => Some("DESCRIPTOR_SET"),
+            Self::PIPELINE => Some("PIPELINE"),
+            Self::INDEX_BUFFER => Some("INDEX_BUFFER"),
+            Self::VERTEX_BUFFER => Some("VERTEX_BUFFER"),
+            Self::PUSH_CONSTANT => Some("PUSH_CONSTANT"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for StencilOp {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::KEEP => Some("KEEP"),
+            Self::ZERO => Some("ZERO"),
+            Self::REPLACE => Some("REPLACE"),
+            Self::INCREMENT_AND_CLAMP => Some("INCREMENT_AND_CLAMP"),
+            Self::DECREMENT_AND_CLAMP => Some("DECREMENT_AND_CLAMP"),
+            Self::INVERT => Some("INVERT"),
+            Self::INCREMENT_AND_WRAP => Some("INCREMENT_AND_WRAP"),
+            Self::DECREMENT_AND_WRAP => Some("DECREMENT_AND_WRAP"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for QueryControlFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[(QueryControlFlags::PRECISE.0, "PRECISE")];
         display_flags(f, KNOWN, self.0)
     }
 }
@@ -51450,26 +54524,6 @@ impl fmt::Display for SurfaceTransformFlagsKHR {
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for RenderPassCreateFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] =
-            &[(RenderPassCreateFlags::RESERVED_0_KHR.0, "RESERVED_0_KHR")];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for MemoryPropertyFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (MemoryPropertyFlags::DEVICE_LOCAL.0, "DEVICE_LOCAL"),
-            (MemoryPropertyFlags::HOST_VISIBLE.0, "HOST_VISIBLE"),
-            (MemoryPropertyFlags::HOST_COHERENT.0, "HOST_COHERENT"),
-            (MemoryPropertyFlags::HOST_CACHED.0, "HOST_CACHED"),
-            (MemoryPropertyFlags::LAZILY_ALLOCATED.0, "LAZILY_ALLOCATED"),
-            (MemoryPropertyFlags::PROTECTED.0, "PROTECTED"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
 impl fmt::Display for CommandPoolCreateFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
@@ -51483,71 +54537,140 @@ impl fmt::Display for CommandPoolCreateFlags {
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for AccelerationStructureTypeNV {
+impl fmt::Display for ExternalSemaphoreHandleTypeFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::TOP_LEVEL => Some("TOP_LEVEL"),
-            Self::BOTTOM_LEVEL => Some("BOTTOM_LEVEL"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ImageType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::TYPE_1D => Some("TYPE_1D"),
-            Self::TYPE_2D => Some("TYPE_2D"),
-            Self::TYPE_3D => Some("TYPE_3D"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for QueryControlFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(QueryControlFlags::PRECISE.0, "PRECISE")];
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                ExternalSemaphoreHandleTypeFlags::EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD.0,
+                "EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD",
+            ),
+            (
+                ExternalSemaphoreHandleTypeFlags::EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32.0,
+                "EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32",
+            ),
+            (
+                ExternalSemaphoreHandleTypeFlags::EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_KMT.0,
+                "EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_KMT",
+            ),
+            (
+                ExternalSemaphoreHandleTypeFlags::EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE.0,
+                "EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE",
+            ),
+            (
+                ExternalSemaphoreHandleTypeFlags::EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD.0,
+                "EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD",
+            ),
+        ];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for ImageCreateFlags {
+impl fmt::Display for ExternalSemaphoreFeatureFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
-            (ImageCreateFlags::SPARSE_BINDING.0, "SPARSE_BINDING"),
-            (ImageCreateFlags::SPARSE_RESIDENCY.0, "SPARSE_RESIDENCY"),
-            (ImageCreateFlags::SPARSE_ALIASED.0, "SPARSE_ALIASED"),
-            (ImageCreateFlags::MUTABLE_FORMAT.0, "MUTABLE_FORMAT"),
-            (ImageCreateFlags::CUBE_COMPATIBLE.0, "CUBE_COMPATIBLE"),
-            (ImageCreateFlags::CORNER_SAMPLED_NV.0, "CORNER_SAMPLED_NV"),
             (
-                ImageCreateFlags::SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_EXT.0,
-                "SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_EXT",
-            ),
-            (ImageCreateFlags::RESERVED_14_EXT.0, "RESERVED_14_EXT"),
-            (ImageCreateFlags::ALIAS.0, "ALIAS"),
-            (
-                ImageCreateFlags::SPLIT_INSTANCE_BIND_REGIONS.0,
-                "SPLIT_INSTANCE_BIND_REGIONS",
+                ExternalSemaphoreFeatureFlags::EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE.0,
+                "EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE",
             ),
             (
-                ImageCreateFlags::TYPE_2D_ARRAY_COMPATIBLE.0,
-                "TYPE_2D_ARRAY_COMPATIBLE",
+                ExternalSemaphoreFeatureFlags::EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE.0,
+                "EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for GeometryFlagsNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (GeometryFlagsNV::OPAQUE.0, "OPAQUE"),
+            (
+                GeometryFlagsNV::NO_DUPLICATE_ANY_HIT_INVOCATION.0,
+                "NO_DUPLICATE_ANY_HIT_INVOCATION",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for PipelineBindPoint {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::GRAPHICS => Some("GRAPHICS"),
+            Self::COMPUTE => Some("COMPUTE"),
+            Self::RAY_TRACING_NV => Some("RAY_TRACING_NV"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for BufferUsageFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (BufferUsageFlags::TRANSFER_SRC.0, "TRANSFER_SRC"),
+            (BufferUsageFlags::TRANSFER_DST.0, "TRANSFER_DST"),
+            (
+                BufferUsageFlags::UNIFORM_TEXEL_BUFFER.0,
+                "UNIFORM_TEXEL_BUFFER",
             ),
             (
-                ImageCreateFlags::BLOCK_TEXEL_VIEW_COMPATIBLE.0,
-                "BLOCK_TEXEL_VIEW_COMPATIBLE",
+                BufferUsageFlags::STORAGE_TEXEL_BUFFER.0,
+                "STORAGE_TEXEL_BUFFER",
             ),
-            (ImageCreateFlags::EXTENDED_USAGE.0, "EXTENDED_USAGE"),
-            (ImageCreateFlags::PROTECTED.0, "PROTECTED"),
-            (ImageCreateFlags::DISJOINT.0, "DISJOINT"),
+            (BufferUsageFlags::UNIFORM_BUFFER.0, "UNIFORM_BUFFER"),
+            (BufferUsageFlags::STORAGE_BUFFER.0, "STORAGE_BUFFER"),
+            (BufferUsageFlags::INDEX_BUFFER.0, "INDEX_BUFFER"),
+            (BufferUsageFlags::VERTEX_BUFFER.0, "VERTEX_BUFFER"),
+            (BufferUsageFlags::INDIRECT_BUFFER.0, "INDIRECT_BUFFER"),
+            (
+                BufferUsageFlags::TRANSFORM_FEEDBACK_BUFFER_EXT.0,
+                "TRANSFORM_FEEDBACK_BUFFER_EXT",
+            ),
+            (
+                BufferUsageFlags::TRANSFORM_FEEDBACK_COUNTER_BUFFER_EXT.0,
+                "TRANSFORM_FEEDBACK_COUNTER_BUFFER_EXT",
+            ),
+            (
+                BufferUsageFlags::CONDITIONAL_RENDERING_EXT.0,
+                "CONDITIONAL_RENDERING_EXT",
+            ),
+            (BufferUsageFlags::RAY_TRACING_NV.0, "RAY_TRACING_NV"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for ImageTiling {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::OPTIMAL => Some("OPTIMAL"),
+            Self::LINEAR => Some("LINEAR"),
+            Self::DRM_FORMAT_MODIFIER_EXT => Some("DRM_FORMAT_MODIFIER_EXT"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for CommandBufferUsageFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                CommandBufferUsageFlags::ONE_TIME_SUBMIT.0,
+                "ONE_TIME_SUBMIT",
+            ),
+            (
+                CommandBufferUsageFlags::RENDER_PASS_CONTINUE.0,
+                "RENDER_PASS_CONTINUE",
+            ),
+            (
+                CommandBufferUsageFlags::SIMULTANEOUS_USE.0,
+                "SIMULTANEOUS_USE",
+            ),
         ];
         display_flags(f, KNOWN, self.0)
     }
@@ -51602,16 +54725,15 @@ impl fmt::Display for ObjectType {
         }
     }
 }
-impl fmt::Display for QueryType {
+impl fmt::Display for BorderColor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::OCCLUSION => Some("OCCLUSION"),
-            Self::PIPELINE_STATISTICS => Some("PIPELINE_STATISTICS"),
-            Self::TIMESTAMP => Some("TIMESTAMP"),
-            Self::TRANSFORM_FEEDBACK_STREAM_EXT => Some("TRANSFORM_FEEDBACK_STREAM_EXT"),
-            Self::ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV => {
-                Some("ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV")
-            }
+            Self::FLOAT_TRANSPARENT_BLACK => Some("FLOAT_TRANSPARENT_BLACK"),
+            Self::INT_TRANSPARENT_BLACK => Some("INT_TRANSPARENT_BLACK"),
+            Self::FLOAT_OPAQUE_BLACK => Some("FLOAT_OPAQUE_BLACK"),
+            Self::INT_OPAQUE_BLACK => Some("INT_OPAQUE_BLACK"),
+            Self::FLOAT_OPAQUE_WHITE => Some("FLOAT_OPAQUE_WHITE"),
+            Self::INT_OPAQUE_WHITE => Some("INT_OPAQUE_WHITE"),
             _ => None,
         };
         if let Some(x) = name {
@@ -51621,11 +54743,11 @@ impl fmt::Display for QueryType {
         }
     }
 }
-impl fmt::Display for TessellationDomainOrigin {
+impl fmt::Display for AttachmentStoreOp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::UPPER_LEFT => Some("UPPER_LEFT"),
-            Self::LOWER_LEFT => Some("LOWER_LEFT"),
+            Self::STORE => Some("STORE"),
+            Self::DONT_CARE => Some("DONT_CARE"),
             _ => None,
         };
         if let Some(x) = name {
@@ -51635,27 +54757,11 @@ impl fmt::Display for TessellationDomainOrigin {
         }
     }
 }
-impl fmt::Display for DescriptorSetLayoutCreateFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                DescriptorSetLayoutCreateFlags::PUSH_DESCRIPTOR_KHR.0,
-                "PUSH_DESCRIPTOR_KHR",
-            ),
-            (
-                DescriptorSetLayoutCreateFlags::UPDATE_AFTER_BIND_POOL_EXT.0,
-                "UPDATE_AFTER_BIND_POOL_EXT",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for SamplerReductionModeEXT {
+impl fmt::Display for SharingMode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::WEIGHTED_AVERAGE => Some("WEIGHTED_AVERAGE"),
-            Self::MIN => Some("MIN"),
-            Self::MAX => Some("MAX"),
+            Self::EXCLUSIVE => Some("EXCLUSIVE"),
+            Self::CONCURRENT => Some("CONCURRENT"),
             _ => None,
         };
         if let Some(x) = name {
@@ -51665,87 +54771,28 @@ impl fmt::Display for SamplerReductionModeEXT {
         }
     }
 }
-impl fmt::Display for ValidationCacheHeaderVersionEXT {
+impl fmt::Display for BlendFactor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::ONE => Some("ONE"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ComponentSwizzle {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::IDENTITY => Some("IDENTITY"),
             Self::ZERO => Some("ZERO"),
             Self::ONE => Some("ONE"),
-            Self::R => Some("R"),
-            Self::G => Some("G"),
-            Self::B => Some("B"),
-            Self::A => Some("A"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for BlendOverlapEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::UNCORRELATED => Some("UNCORRELATED"),
-            Self::DISJOINT => Some("DISJOINT"),
-            Self::CONJOINT => Some("CONJOINT"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for VendorId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::VIV => Some("VIV"),
-            Self::VSI => Some("VSI"),
-            Self::KAZAN => Some("KAZAN"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for PipelineCacheHeaderVersion {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::ONE => Some("ONE"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for MemoryOverallocationBehaviorAMD {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::DEFAULT => Some("DEFAULT"),
-            Self::ALLOWED => Some("ALLOWED"),
-            Self::DISALLOWED => Some("DISALLOWED"),
+            Self::SRC_COLOR => Some("SRC_COLOR"),
+            Self::ONE_MINUS_SRC_COLOR => Some("ONE_MINUS_SRC_COLOR"),
+            Self::DST_COLOR => Some("DST_COLOR"),
+            Self::ONE_MINUS_DST_COLOR => Some("ONE_MINUS_DST_COLOR"),
+            Self::SRC_ALPHA => Some("SRC_ALPHA"),
+            Self::ONE_MINUS_SRC_ALPHA => Some("ONE_MINUS_SRC_ALPHA"),
+            Self::DST_ALPHA => Some("DST_ALPHA"),
+            Self::ONE_MINUS_DST_ALPHA => Some("ONE_MINUS_DST_ALPHA"),
+            Self::CONSTANT_COLOR => Some("CONSTANT_COLOR"),
+            Self::ONE_MINUS_CONSTANT_COLOR => Some("ONE_MINUS_CONSTANT_COLOR"),
+            Self::CONSTANT_ALPHA => Some("CONSTANT_ALPHA"),
+            Self::ONE_MINUS_CONSTANT_ALPHA => Some("ONE_MINUS_CONSTANT_ALPHA"),
+            Self::SRC_ALPHA_SATURATE => Some("SRC_ALPHA_SATURATE"),
+            Self::SRC1_COLOR => Some("SRC1_COLOR"),
+            Self::ONE_MINUS_SRC1_COLOR => Some("ONE_MINUS_SRC1_COLOR"),
+            Self::SRC1_ALPHA => Some("SRC1_ALPHA"),
+            Self::ONE_MINUS_SRC1_ALPHA => Some("ONE_MINUS_SRC1_ALPHA"),
             _ => None,
         };
         if let Some(x) = name {
@@ -51769,1016 +54816,9 @@ impl fmt::Display for SamplerMipmapMode {
         }
     }
 }
-impl fmt::Display for DisplayPlaneAlphaFlagsKHR {
+impl fmt::Display for FormatFeatureFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (DisplayPlaneAlphaFlagsKHR::OPAQUE.0, "OPAQUE"),
-            (DisplayPlaneAlphaFlagsKHR::GLOBAL.0, "GLOBAL"),
-            (DisplayPlaneAlphaFlagsKHR::PER_PIXEL.0, "PER_PIXEL"),
-            (
-                DisplayPlaneAlphaFlagsKHR::PER_PIXEL_PREMULTIPLIED.0,
-                "PER_PIXEL_PREMULTIPLIED",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for ExternalMemoryHandleTypeFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN : & [ ( Flags , & str ) ] = & [ ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32 . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_KMT . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_KMT" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_ANDROID . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_ANDROID" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_HOST_MAPPED_FOREIGN_MEMORY . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_HOST_MAPPED_FOREIGN_MEMORY" ) ] ;
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for SubpassContents {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::INLINE => Some("INLINE"),
-            Self::SECONDARY_COMMAND_BUFFERS => Some("SECONDARY_COMMAND_BUFFERS"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for SamplerYcbcrRange {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::ITU_FULL => Some("ITU_FULL"),
-            Self::ITU_NARROW => Some("ITU_NARROW"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ViewportCoordinateSwizzleNV {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::POSITIVE_X => Some("POSITIVE_X"),
-            Self::NEGATIVE_X => Some("NEGATIVE_X"),
-            Self::POSITIVE_Y => Some("POSITIVE_Y"),
-            Self::NEGATIVE_Y => Some("NEGATIVE_Y"),
-            Self::POSITIVE_Z => Some("POSITIVE_Z"),
-            Self::NEGATIVE_Z => Some("NEGATIVE_Z"),
-            Self::POSITIVE_W => Some("POSITIVE_W"),
-            Self::NEGATIVE_W => Some("NEGATIVE_W"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for DependencyFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (DependencyFlags::BY_REGION.0, "BY_REGION"),
-            (DependencyFlags::DEVICE_GROUP.0, "DEVICE_GROUP"),
-            (DependencyFlags::VIEW_LOCAL.0, "VIEW_LOCAL"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for SparseMemoryBindFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(SparseMemoryBindFlags::METADATA.0, "METADATA")];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for DeviceQueueCreateFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(DeviceQueueCreateFlags::PROTECTED.0, "PROTECTED")];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for PhysicalDeviceType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::OTHER => Some("OTHER"),
-            Self::INTEGRATED_GPU => Some("INTEGRATED_GPU"),
-            Self::DISCRETE_GPU => Some("DISCRETE_GPU"),
-            Self::VIRTUAL_GPU => Some("VIRTUAL_GPU"),
-            Self::CPU => Some("CPU"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for BufferUsageFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (BufferUsageFlags::TRANSFER_SRC.0, "TRANSFER_SRC"),
-            (BufferUsageFlags::TRANSFER_DST.0, "TRANSFER_DST"),
-            (
-                BufferUsageFlags::UNIFORM_TEXEL_BUFFER.0,
-                "UNIFORM_TEXEL_BUFFER",
-            ),
-            (
-                BufferUsageFlags::STORAGE_TEXEL_BUFFER.0,
-                "STORAGE_TEXEL_BUFFER",
-            ),
-            (BufferUsageFlags::UNIFORM_BUFFER.0, "UNIFORM_BUFFER"),
-            (BufferUsageFlags::STORAGE_BUFFER.0, "STORAGE_BUFFER"),
-            (BufferUsageFlags::INDEX_BUFFER.0, "INDEX_BUFFER"),
-            (BufferUsageFlags::VERTEX_BUFFER.0, "VERTEX_BUFFER"),
-            (BufferUsageFlags::INDIRECT_BUFFER.0, "INDIRECT_BUFFER"),
-            (
-                BufferUsageFlags::TRANSFORM_FEEDBACK_BUFFER_EXT.0,
-                "TRANSFORM_FEEDBACK_BUFFER_EXT",
-            ),
-            (
-                BufferUsageFlags::TRANSFORM_FEEDBACK_COUNTER_BUFFER_EXT.0,
-                "TRANSFORM_FEEDBACK_COUNTER_BUFFER_EXT",
-            ),
-            (
-                BufferUsageFlags::CONDITIONAL_RENDERING_EXT.0,
-                "CONDITIONAL_RENDERING_EXT",
-            ),
-            (BufferUsageFlags::RAY_TRACING_NV.0, "RAY_TRACING_NV"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for ShaderInfoTypeAMD {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::STATISTICS => Some("STATISTICS"),
-            Self::BINARY => Some("BINARY"),
-            Self::DISASSEMBLY => Some("DISASSEMBLY"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for DriverIdKHR {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::AMD_PROPRIETARY => Some("AMD_PROPRIETARY"),
-            Self::AMD_OPEN_SOURCE => Some("AMD_OPEN_SOURCE"),
-            Self::MESA_RADV => Some("MESA_RADV"),
-            Self::NVIDIA_PROPRIETARY => Some("NVIDIA_PROPRIETARY"),
-            Self::INTEL_PROPRIETARY_WINDOWS => Some("INTEL_PROPRIETARY_WINDOWS"),
-            Self::INTEL_OPEN_SOURCE_MESA => Some("INTEL_OPEN_SOURCE_MESA"),
-            Self::IMAGINATION_PROPRIETARY => Some("IMAGINATION_PROPRIETARY"),
-            Self::QUALCOMM_PROPRIETARY => Some("QUALCOMM_PROPRIETARY"),
-            Self::ARM_PROPRIETARY => Some("ARM_PROPRIETARY"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for PeerMemoryFeatureFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (PeerMemoryFeatureFlags::COPY_SRC.0, "COPY_SRC"),
-            (PeerMemoryFeatureFlags::COPY_DST.0, "COPY_DST"),
-            (PeerMemoryFeatureFlags::GENERIC_SRC.0, "GENERIC_SRC"),
-            (PeerMemoryFeatureFlags::GENERIC_DST.0, "GENERIC_DST"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for CommandBufferResetFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(
-            CommandBufferResetFlags::RELEASE_RESOURCES.0,
-            "RELEASE_RESOURCES",
-        )];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for SurfaceCounterFlagsEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(SurfaceCounterFlagsEXT::VBLANK.0, "VBLANK")];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for DisplayEventTypeEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::FIRST_PIXEL_OUT => Some("FIRST_PIXEL_OUT"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for DescriptorUpdateTemplateType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::DESCRIPTOR_SET => Some("DESCRIPTOR_SET"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for CoarseSampleOrderTypeNV {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::DEFAULT => Some("DEFAULT"),
-            Self::CUSTOM => Some("CUSTOM"),
-            Self::PIXEL_MAJOR => Some("PIXEL_MAJOR"),
-            Self::SAMPLE_MAJOR => Some("SAMPLE_MAJOR"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for PrimitiveTopology {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::POINT_LIST => Some("POINT_LIST"),
-            Self::LINE_LIST => Some("LINE_LIST"),
-            Self::LINE_STRIP => Some("LINE_STRIP"),
-            Self::TRIANGLE_LIST => Some("TRIANGLE_LIST"),
-            Self::TRIANGLE_STRIP => Some("TRIANGLE_STRIP"),
-            Self::TRIANGLE_FAN => Some("TRIANGLE_FAN"),
-            Self::LINE_LIST_WITH_ADJACENCY => Some("LINE_LIST_WITH_ADJACENCY"),
-            Self::LINE_STRIP_WITH_ADJACENCY => Some("LINE_STRIP_WITH_ADJACENCY"),
-            Self::TRIANGLE_LIST_WITH_ADJACENCY => Some("TRIANGLE_LIST_WITH_ADJACENCY"),
-            Self::TRIANGLE_STRIP_WITH_ADJACENCY => Some("TRIANGLE_STRIP_WITH_ADJACENCY"),
-            Self::PATCH_LIST => Some("PATCH_LIST"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for RasterizationOrderAMD {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::STRICT => Some("STRICT"),
-            Self::RELAXED => Some("RELAXED"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for SwapchainCreateFlagsKHR {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                SwapchainCreateFlagsKHR::SPLIT_INSTANCE_BIND_REGIONS.0,
-                "SPLIT_INSTANCE_BIND_REGIONS",
-            ),
-            (SwapchainCreateFlagsKHR::PROTECTED.0, "PROTECTED"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for SystemAllocationScope {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::COMMAND => Some("COMMAND"),
-            Self::OBJECT => Some("OBJECT"),
-            Self::CACHE => Some("CACHE"),
-            Self::DEVICE => Some("DEVICE"),
-            Self::INSTANCE => Some("INSTANCE"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for IndirectCommandsTokenTypeNVX {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::PIPELINE => Some("PIPELINE"),
-            Self::DESCRIPTOR_SET => Some("DESCRIPTOR_SET"),
-            Self::INDEX_BUFFER => Some("INDEX_BUFFER"),
-            Self::VERTEX_BUFFER => Some("VERTEX_BUFFER"),
-            Self::PUSH_CONSTANT => Some("PUSH_CONSTANT"),
-            Self::DRAW_INDEXED => Some("DRAW_INDEXED"),
-            Self::DRAW => Some("DRAW"),
-            Self::DISPATCH => Some("DISPATCH"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ObjectEntryTypeNVX {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::DESCRIPTOR_SET => Some("DESCRIPTOR_SET"),
-            Self::PIPELINE => Some("PIPELINE"),
-            Self::INDEX_BUFFER => Some("INDEX_BUFFER"),
-            Self::VERTEX_BUFFER => Some("VERTEX_BUFFER"),
-            Self::PUSH_CONSTANT => Some("PUSH_CONSTANT"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for PipelineBindPoint {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::GRAPHICS => Some("GRAPHICS"),
-            Self::COMPUTE => Some("COMPUTE"),
-            Self::RAY_TRACING_NV => Some("RAY_TRACING_NV"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ExternalMemoryFeatureFlagsNV {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                ExternalMemoryFeatureFlagsNV::EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY_NV.0,
-                "EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY_NV",
-            ),
-            (
-                ExternalMemoryFeatureFlagsNV::EXTERNAL_MEMORY_FEATURE_EXPORTABLE_NV.0,
-                "EXTERNAL_MEMORY_FEATURE_EXPORTABLE_NV",
-            ),
-            (
-                ExternalMemoryFeatureFlagsNV::EXTERNAL_MEMORY_FEATURE_IMPORTABLE_NV.0,
-                "EXTERNAL_MEMORY_FEATURE_IMPORTABLE_NV",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for RayTracingShaderGroupTypeNV {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::GENERAL => Some("GENERAL"),
-            Self::TRIANGLES_HIT_GROUP => Some("TRIANGLES_HIT_GROUP"),
-            Self::PROCEDURAL_HIT_GROUP => Some("PROCEDURAL_HIT_GROUP"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for CommandPoolResetFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(
-            CommandPoolResetFlags::RELEASE_RESOURCES.0,
-            "RELEASE_RESOURCES",
-        )];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for SampleCountFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (SampleCountFlags::TYPE_1.0, "TYPE_1"),
-            (SampleCountFlags::TYPE_2.0, "TYPE_2"),
-            (SampleCountFlags::TYPE_4.0, "TYPE_4"),
-            (SampleCountFlags::TYPE_8.0, "TYPE_8"),
-            (SampleCountFlags::TYPE_16.0, "TYPE_16"),
-            (SampleCountFlags::TYPE_32.0, "TYPE_32"),
-            (SampleCountFlags::TYPE_64.0, "TYPE_64"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for PresentModeKHR {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::IMMEDIATE => Some("IMMEDIATE"),
-            Self::MAILBOX => Some("MAILBOX"),
-            Self::FIFO => Some("FIFO"),
-            Self::FIFO_RELAXED => Some("FIFO_RELAXED"),
-            Self::SHARED_DEMAND_REFRESH => Some("SHARED_DEMAND_REFRESH"),
-            Self::SHARED_CONTINUOUS_REFRESH => Some("SHARED_CONTINUOUS_REFRESH"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ExternalSemaphoreFeatureFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                ExternalSemaphoreFeatureFlags::EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE.0,
-                "EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE",
-            ),
-            (
-                ExternalSemaphoreFeatureFlags::EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE.0,
-                "EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for VertexInputRate {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::VERTEX => Some("VERTEX"),
-            Self::INSTANCE => Some("INSTANCE"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for SamplerYcbcrModelConversion {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::RGB_IDENTITY => Some("RGB_IDENTITY"),
-            Self::YCBCR_IDENTITY => Some("YCBCR_IDENTITY"),
-            Self::YCBCR_709 => Some("YCBCR_709"),
-            Self::YCBCR_601 => Some("YCBCR_601"),
-            Self::YCBCR_2020 => Some("YCBCR_2020"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for PipelineCreateFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                PipelineCreateFlags::DISABLE_OPTIMIZATION.0,
-                "DISABLE_OPTIMIZATION",
-            ),
-            (
-                PipelineCreateFlags::ALLOW_DERIVATIVES.0,
-                "ALLOW_DERIVATIVES",
-            ),
-            (PipelineCreateFlags::DERIVATIVE.0, "DERIVATIVE"),
-            (PipelineCreateFlags::DEFER_COMPILE_NV.0, "DEFER_COMPILE_NV"),
-            (
-                PipelineCreateFlags::VIEW_INDEX_FROM_DEVICE_INDEX.0,
-                "VIEW_INDEX_FROM_DEVICE_INDEX",
-            ),
-            (PipelineCreateFlags::DISPATCH_BASE.0, "DISPATCH_BASE"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for StencilFaceFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (StencilFaceFlags::FRONT.0, "FRONT"),
-            (StencilFaceFlags::BACK.0, "BACK"),
-            (
-                StencilFaceFlags::STENCIL_FRONT_AND_BACK.0,
-                "STENCIL_FRONT_AND_BACK",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for IndirectCommandsLayoutUsageFlagsNVX {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                IndirectCommandsLayoutUsageFlagsNVX::UNORDERED_SEQUENCES.0,
-                "UNORDERED_SEQUENCES",
-            ),
-            (
-                IndirectCommandsLayoutUsageFlagsNVX::SPARSE_SEQUENCES.0,
-                "SPARSE_SEQUENCES",
-            ),
-            (
-                IndirectCommandsLayoutUsageFlagsNVX::EMPTY_EXECUTIONS.0,
-                "EMPTY_EXECUTIONS",
-            ),
-            (
-                IndirectCommandsLayoutUsageFlagsNVX::INDEXED_SEQUENCES.0,
-                "INDEXED_SEQUENCES",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for ExternalFenceHandleTypeFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                ExternalFenceHandleTypeFlags::EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD.0,
-                "EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD",
-            ),
-            (
-                ExternalFenceHandleTypeFlags::EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_WIN32.0,
-                "EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_WIN32",
-            ),
-            (
-                ExternalFenceHandleTypeFlags::EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_WIN32_KMT.0,
-                "EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_WIN32_KMT",
-            ),
-            (
-                ExternalFenceHandleTypeFlags::EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD.0,
-                "EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for SparseImageFormatFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (SparseImageFormatFlags::SINGLE_MIPTAIL.0, "SINGLE_MIPTAIL"),
-            (
-                SparseImageFormatFlags::ALIGNED_MIP_SIZE.0,
-                "ALIGNED_MIP_SIZE",
-            ),
-            (
-                SparseImageFormatFlags::NONSTANDARD_BLOCK_SIZE.0,
-                "NONSTANDARD_BLOCK_SIZE",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for DescriptorPoolCreateFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                DescriptorPoolCreateFlags::FREE_DESCRIPTOR_SET.0,
-                "FREE_DESCRIPTOR_SET",
-            ),
-            (
-                DescriptorPoolCreateFlags::UPDATE_AFTER_BIND_EXT.0,
-                "UPDATE_AFTER_BIND_EXT",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for DebugUtilsMessageTypeFlagsEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (DebugUtilsMessageTypeFlagsEXT::GENERAL.0, "GENERAL"),
-            (DebugUtilsMessageTypeFlagsEXT::VALIDATION.0, "VALIDATION"),
-            (DebugUtilsMessageTypeFlagsEXT::PERFORMANCE.0, "PERFORMANCE"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for SemaphoreImportFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(SemaphoreImportFlags::TEMPORARY.0, "TEMPORARY")];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for ColorComponentFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (ColorComponentFlags::R.0, "R"),
-            (ColorComponentFlags::G.0, "G"),
-            (ColorComponentFlags::B.0, "B"),
-            (ColorComponentFlags::A.0, "A"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for Format {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::UNDEFINED => Some("UNDEFINED"),
-            Self::R4G4_UNORM_PACK8 => Some("R4G4_UNORM_PACK8"),
-            Self::R4G4B4A4_UNORM_PACK16 => Some("R4G4B4A4_UNORM_PACK16"),
-            Self::B4G4R4A4_UNORM_PACK16 => Some("B4G4R4A4_UNORM_PACK16"),
-            Self::R5G6B5_UNORM_PACK16 => Some("R5G6B5_UNORM_PACK16"),
-            Self::B5G6R5_UNORM_PACK16 => Some("B5G6R5_UNORM_PACK16"),
-            Self::R5G5B5A1_UNORM_PACK16 => Some("R5G5B5A1_UNORM_PACK16"),
-            Self::B5G5R5A1_UNORM_PACK16 => Some("B5G5R5A1_UNORM_PACK16"),
-            Self::A1R5G5B5_UNORM_PACK16 => Some("A1R5G5B5_UNORM_PACK16"),
-            Self::R8_UNORM => Some("R8_UNORM"),
-            Self::R8_SNORM => Some("R8_SNORM"),
-            Self::R8_USCALED => Some("R8_USCALED"),
-            Self::R8_SSCALED => Some("R8_SSCALED"),
-            Self::R8_UINT => Some("R8_UINT"),
-            Self::R8_SINT => Some("R8_SINT"),
-            Self::R8_SRGB => Some("R8_SRGB"),
-            Self::R8G8_UNORM => Some("R8G8_UNORM"),
-            Self::R8G8_SNORM => Some("R8G8_SNORM"),
-            Self::R8G8_USCALED => Some("R8G8_USCALED"),
-            Self::R8G8_SSCALED => Some("R8G8_SSCALED"),
-            Self::R8G8_UINT => Some("R8G8_UINT"),
-            Self::R8G8_SINT => Some("R8G8_SINT"),
-            Self::R8G8_SRGB => Some("R8G8_SRGB"),
-            Self::R8G8B8_UNORM => Some("R8G8B8_UNORM"),
-            Self::R8G8B8_SNORM => Some("R8G8B8_SNORM"),
-            Self::R8G8B8_USCALED => Some("R8G8B8_USCALED"),
-            Self::R8G8B8_SSCALED => Some("R8G8B8_SSCALED"),
-            Self::R8G8B8_UINT => Some("R8G8B8_UINT"),
-            Self::R8G8B8_SINT => Some("R8G8B8_SINT"),
-            Self::R8G8B8_SRGB => Some("R8G8B8_SRGB"),
-            Self::B8G8R8_UNORM => Some("B8G8R8_UNORM"),
-            Self::B8G8R8_SNORM => Some("B8G8R8_SNORM"),
-            Self::B8G8R8_USCALED => Some("B8G8R8_USCALED"),
-            Self::B8G8R8_SSCALED => Some("B8G8R8_SSCALED"),
-            Self::B8G8R8_UINT => Some("B8G8R8_UINT"),
-            Self::B8G8R8_SINT => Some("B8G8R8_SINT"),
-            Self::B8G8R8_SRGB => Some("B8G8R8_SRGB"),
-            Self::R8G8B8A8_UNORM => Some("R8G8B8A8_UNORM"),
-            Self::R8G8B8A8_SNORM => Some("R8G8B8A8_SNORM"),
-            Self::R8G8B8A8_USCALED => Some("R8G8B8A8_USCALED"),
-            Self::R8G8B8A8_SSCALED => Some("R8G8B8A8_SSCALED"),
-            Self::R8G8B8A8_UINT => Some("R8G8B8A8_UINT"),
-            Self::R8G8B8A8_SINT => Some("R8G8B8A8_SINT"),
-            Self::R8G8B8A8_SRGB => Some("R8G8B8A8_SRGB"),
-            Self::B8G8R8A8_UNORM => Some("B8G8R8A8_UNORM"),
-            Self::B8G8R8A8_SNORM => Some("B8G8R8A8_SNORM"),
-            Self::B8G8R8A8_USCALED => Some("B8G8R8A8_USCALED"),
-            Self::B8G8R8A8_SSCALED => Some("B8G8R8A8_SSCALED"),
-            Self::B8G8R8A8_UINT => Some("B8G8R8A8_UINT"),
-            Self::B8G8R8A8_SINT => Some("B8G8R8A8_SINT"),
-            Self::B8G8R8A8_SRGB => Some("B8G8R8A8_SRGB"),
-            Self::A8B8G8R8_UNORM_PACK32 => Some("A8B8G8R8_UNORM_PACK32"),
-            Self::A8B8G8R8_SNORM_PACK32 => Some("A8B8G8R8_SNORM_PACK32"),
-            Self::A8B8G8R8_USCALED_PACK32 => Some("A8B8G8R8_USCALED_PACK32"),
-            Self::A8B8G8R8_SSCALED_PACK32 => Some("A8B8G8R8_SSCALED_PACK32"),
-            Self::A8B8G8R8_UINT_PACK32 => Some("A8B8G8R8_UINT_PACK32"),
-            Self::A8B8G8R8_SINT_PACK32 => Some("A8B8G8R8_SINT_PACK32"),
-            Self::A8B8G8R8_SRGB_PACK32 => Some("A8B8G8R8_SRGB_PACK32"),
-            Self::A2R10G10B10_UNORM_PACK32 => Some("A2R10G10B10_UNORM_PACK32"),
-            Self::A2R10G10B10_SNORM_PACK32 => Some("A2R10G10B10_SNORM_PACK32"),
-            Self::A2R10G10B10_USCALED_PACK32 => Some("A2R10G10B10_USCALED_PACK32"),
-            Self::A2R10G10B10_SSCALED_PACK32 => Some("A2R10G10B10_SSCALED_PACK32"),
-            Self::A2R10G10B10_UINT_PACK32 => Some("A2R10G10B10_UINT_PACK32"),
-            Self::A2R10G10B10_SINT_PACK32 => Some("A2R10G10B10_SINT_PACK32"),
-            Self::A2B10G10R10_UNORM_PACK32 => Some("A2B10G10R10_UNORM_PACK32"),
-            Self::A2B10G10R10_SNORM_PACK32 => Some("A2B10G10R10_SNORM_PACK32"),
-            Self::A2B10G10R10_USCALED_PACK32 => Some("A2B10G10R10_USCALED_PACK32"),
-            Self::A2B10G10R10_SSCALED_PACK32 => Some("A2B10G10R10_SSCALED_PACK32"),
-            Self::A2B10G10R10_UINT_PACK32 => Some("A2B10G10R10_UINT_PACK32"),
-            Self::A2B10G10R10_SINT_PACK32 => Some("A2B10G10R10_SINT_PACK32"),
-            Self::R16_UNORM => Some("R16_UNORM"),
-            Self::R16_SNORM => Some("R16_SNORM"),
-            Self::R16_USCALED => Some("R16_USCALED"),
-            Self::R16_SSCALED => Some("R16_SSCALED"),
-            Self::R16_UINT => Some("R16_UINT"),
-            Self::R16_SINT => Some("R16_SINT"),
-            Self::R16_SFLOAT => Some("R16_SFLOAT"),
-            Self::R16G16_UNORM => Some("R16G16_UNORM"),
-            Self::R16G16_SNORM => Some("R16G16_SNORM"),
-            Self::R16G16_USCALED => Some("R16G16_USCALED"),
-            Self::R16G16_SSCALED => Some("R16G16_SSCALED"),
-            Self::R16G16_UINT => Some("R16G16_UINT"),
-            Self::R16G16_SINT => Some("R16G16_SINT"),
-            Self::R16G16_SFLOAT => Some("R16G16_SFLOAT"),
-            Self::R16G16B16_UNORM => Some("R16G16B16_UNORM"),
-            Self::R16G16B16_SNORM => Some("R16G16B16_SNORM"),
-            Self::R16G16B16_USCALED => Some("R16G16B16_USCALED"),
-            Self::R16G16B16_SSCALED => Some("R16G16B16_SSCALED"),
-            Self::R16G16B16_UINT => Some("R16G16B16_UINT"),
-            Self::R16G16B16_SINT => Some("R16G16B16_SINT"),
-            Self::R16G16B16_SFLOAT => Some("R16G16B16_SFLOAT"),
-            Self::R16G16B16A16_UNORM => Some("R16G16B16A16_UNORM"),
-            Self::R16G16B16A16_SNORM => Some("R16G16B16A16_SNORM"),
-            Self::R16G16B16A16_USCALED => Some("R16G16B16A16_USCALED"),
-            Self::R16G16B16A16_SSCALED => Some("R16G16B16A16_SSCALED"),
-            Self::R16G16B16A16_UINT => Some("R16G16B16A16_UINT"),
-            Self::R16G16B16A16_SINT => Some("R16G16B16A16_SINT"),
-            Self::R16G16B16A16_SFLOAT => Some("R16G16B16A16_SFLOAT"),
-            Self::R32_UINT => Some("R32_UINT"),
-            Self::R32_SINT => Some("R32_SINT"),
-            Self::R32_SFLOAT => Some("R32_SFLOAT"),
-            Self::R32G32_UINT => Some("R32G32_UINT"),
-            Self::R32G32_SINT => Some("R32G32_SINT"),
-            Self::R32G32_SFLOAT => Some("R32G32_SFLOAT"),
-            Self::R32G32B32_UINT => Some("R32G32B32_UINT"),
-            Self::R32G32B32_SINT => Some("R32G32B32_SINT"),
-            Self::R32G32B32_SFLOAT => Some("R32G32B32_SFLOAT"),
-            Self::R32G32B32A32_UINT => Some("R32G32B32A32_UINT"),
-            Self::R32G32B32A32_SINT => Some("R32G32B32A32_SINT"),
-            Self::R32G32B32A32_SFLOAT => Some("R32G32B32A32_SFLOAT"),
-            Self::R64_UINT => Some("R64_UINT"),
-            Self::R64_SINT => Some("R64_SINT"),
-            Self::R64_SFLOAT => Some("R64_SFLOAT"),
-            Self::R64G64_UINT => Some("R64G64_UINT"),
-            Self::R64G64_SINT => Some("R64G64_SINT"),
-            Self::R64G64_SFLOAT => Some("R64G64_SFLOAT"),
-            Self::R64G64B64_UINT => Some("R64G64B64_UINT"),
-            Self::R64G64B64_SINT => Some("R64G64B64_SINT"),
-            Self::R64G64B64_SFLOAT => Some("R64G64B64_SFLOAT"),
-            Self::R64G64B64A64_UINT => Some("R64G64B64A64_UINT"),
-            Self::R64G64B64A64_SINT => Some("R64G64B64A64_SINT"),
-            Self::R64G64B64A64_SFLOAT => Some("R64G64B64A64_SFLOAT"),
-            Self::B10G11R11_UFLOAT_PACK32 => Some("B10G11R11_UFLOAT_PACK32"),
-            Self::E5B9G9R9_UFLOAT_PACK32 => Some("E5B9G9R9_UFLOAT_PACK32"),
-            Self::D16_UNORM => Some("D16_UNORM"),
-            Self::X8_D24_UNORM_PACK32 => Some("X8_D24_UNORM_PACK32"),
-            Self::D32_SFLOAT => Some("D32_SFLOAT"),
-            Self::S8_UINT => Some("S8_UINT"),
-            Self::D16_UNORM_S8_UINT => Some("D16_UNORM_S8_UINT"),
-            Self::D24_UNORM_S8_UINT => Some("D24_UNORM_S8_UINT"),
-            Self::D32_SFLOAT_S8_UINT => Some("D32_SFLOAT_S8_UINT"),
-            Self::BC1_RGB_UNORM_BLOCK => Some("BC1_RGB_UNORM_BLOCK"),
-            Self::BC1_RGB_SRGB_BLOCK => Some("BC1_RGB_SRGB_BLOCK"),
-            Self::BC1_RGBA_UNORM_BLOCK => Some("BC1_RGBA_UNORM_BLOCK"),
-            Self::BC1_RGBA_SRGB_BLOCK => Some("BC1_RGBA_SRGB_BLOCK"),
-            Self::BC2_UNORM_BLOCK => Some("BC2_UNORM_BLOCK"),
-            Self::BC2_SRGB_BLOCK => Some("BC2_SRGB_BLOCK"),
-            Self::BC3_UNORM_BLOCK => Some("BC3_UNORM_BLOCK"),
-            Self::BC3_SRGB_BLOCK => Some("BC3_SRGB_BLOCK"),
-            Self::BC4_UNORM_BLOCK => Some("BC4_UNORM_BLOCK"),
-            Self::BC4_SNORM_BLOCK => Some("BC4_SNORM_BLOCK"),
-            Self::BC5_UNORM_BLOCK => Some("BC5_UNORM_BLOCK"),
-            Self::BC5_SNORM_BLOCK => Some("BC5_SNORM_BLOCK"),
-            Self::BC6H_UFLOAT_BLOCK => Some("BC6H_UFLOAT_BLOCK"),
-            Self::BC6H_SFLOAT_BLOCK => Some("BC6H_SFLOAT_BLOCK"),
-            Self::BC7_UNORM_BLOCK => Some("BC7_UNORM_BLOCK"),
-            Self::BC7_SRGB_BLOCK => Some("BC7_SRGB_BLOCK"),
-            Self::ETC2_R8G8B8_UNORM_BLOCK => Some("ETC2_R8G8B8_UNORM_BLOCK"),
-            Self::ETC2_R8G8B8_SRGB_BLOCK => Some("ETC2_R8G8B8_SRGB_BLOCK"),
-            Self::ETC2_R8G8B8A1_UNORM_BLOCK => Some("ETC2_R8G8B8A1_UNORM_BLOCK"),
-            Self::ETC2_R8G8B8A1_SRGB_BLOCK => Some("ETC2_R8G8B8A1_SRGB_BLOCK"),
-            Self::ETC2_R8G8B8A8_UNORM_BLOCK => Some("ETC2_R8G8B8A8_UNORM_BLOCK"),
-            Self::ETC2_R8G8B8A8_SRGB_BLOCK => Some("ETC2_R8G8B8A8_SRGB_BLOCK"),
-            Self::EAC_R11_UNORM_BLOCK => Some("EAC_R11_UNORM_BLOCK"),
-            Self::EAC_R11_SNORM_BLOCK => Some("EAC_R11_SNORM_BLOCK"),
-            Self::EAC_R11G11_UNORM_BLOCK => Some("EAC_R11G11_UNORM_BLOCK"),
-            Self::EAC_R11G11_SNORM_BLOCK => Some("EAC_R11G11_SNORM_BLOCK"),
-            Self::ASTC_4X4_UNORM_BLOCK => Some("ASTC_4X4_UNORM_BLOCK"),
-            Self::ASTC_4X4_SRGB_BLOCK => Some("ASTC_4X4_SRGB_BLOCK"),
-            Self::ASTC_5X4_UNORM_BLOCK => Some("ASTC_5X4_UNORM_BLOCK"),
-            Self::ASTC_5X4_SRGB_BLOCK => Some("ASTC_5X4_SRGB_BLOCK"),
-            Self::ASTC_5X5_UNORM_BLOCK => Some("ASTC_5X5_UNORM_BLOCK"),
-            Self::ASTC_5X5_SRGB_BLOCK => Some("ASTC_5X5_SRGB_BLOCK"),
-            Self::ASTC_6X5_UNORM_BLOCK => Some("ASTC_6X5_UNORM_BLOCK"),
-            Self::ASTC_6X5_SRGB_BLOCK => Some("ASTC_6X5_SRGB_BLOCK"),
-            Self::ASTC_6X6_UNORM_BLOCK => Some("ASTC_6X6_UNORM_BLOCK"),
-            Self::ASTC_6X6_SRGB_BLOCK => Some("ASTC_6X6_SRGB_BLOCK"),
-            Self::ASTC_8X5_UNORM_BLOCK => Some("ASTC_8X5_UNORM_BLOCK"),
-            Self::ASTC_8X5_SRGB_BLOCK => Some("ASTC_8X5_SRGB_BLOCK"),
-            Self::ASTC_8X6_UNORM_BLOCK => Some("ASTC_8X6_UNORM_BLOCK"),
-            Self::ASTC_8X6_SRGB_BLOCK => Some("ASTC_8X6_SRGB_BLOCK"),
-            Self::ASTC_8X8_UNORM_BLOCK => Some("ASTC_8X8_UNORM_BLOCK"),
-            Self::ASTC_8X8_SRGB_BLOCK => Some("ASTC_8X8_SRGB_BLOCK"),
-            Self::ASTC_10X5_UNORM_BLOCK => Some("ASTC_10X5_UNORM_BLOCK"),
-            Self::ASTC_10X5_SRGB_BLOCK => Some("ASTC_10X5_SRGB_BLOCK"),
-            Self::ASTC_10X6_UNORM_BLOCK => Some("ASTC_10X6_UNORM_BLOCK"),
-            Self::ASTC_10X6_SRGB_BLOCK => Some("ASTC_10X6_SRGB_BLOCK"),
-            Self::ASTC_10X8_UNORM_BLOCK => Some("ASTC_10X8_UNORM_BLOCK"),
-            Self::ASTC_10X8_SRGB_BLOCK => Some("ASTC_10X8_SRGB_BLOCK"),
-            Self::ASTC_10X10_UNORM_BLOCK => Some("ASTC_10X10_UNORM_BLOCK"),
-            Self::ASTC_10X10_SRGB_BLOCK => Some("ASTC_10X10_SRGB_BLOCK"),
-            Self::ASTC_12X10_UNORM_BLOCK => Some("ASTC_12X10_UNORM_BLOCK"),
-            Self::ASTC_12X10_SRGB_BLOCK => Some("ASTC_12X10_SRGB_BLOCK"),
-            Self::ASTC_12X12_UNORM_BLOCK => Some("ASTC_12X12_UNORM_BLOCK"),
-            Self::ASTC_12X12_SRGB_BLOCK => Some("ASTC_12X12_SRGB_BLOCK"),
-            Self::PVRTC1_2BPP_UNORM_BLOCK_IMG => Some("PVRTC1_2BPP_UNORM_BLOCK_IMG"),
-            Self::PVRTC1_4BPP_UNORM_BLOCK_IMG => Some("PVRTC1_4BPP_UNORM_BLOCK_IMG"),
-            Self::PVRTC2_2BPP_UNORM_BLOCK_IMG => Some("PVRTC2_2BPP_UNORM_BLOCK_IMG"),
-            Self::PVRTC2_4BPP_UNORM_BLOCK_IMG => Some("PVRTC2_4BPP_UNORM_BLOCK_IMG"),
-            Self::PVRTC1_2BPP_SRGB_BLOCK_IMG => Some("PVRTC1_2BPP_SRGB_BLOCK_IMG"),
-            Self::PVRTC1_4BPP_SRGB_BLOCK_IMG => Some("PVRTC1_4BPP_SRGB_BLOCK_IMG"),
-            Self::PVRTC2_2BPP_SRGB_BLOCK_IMG => Some("PVRTC2_2BPP_SRGB_BLOCK_IMG"),
-            Self::PVRTC2_4BPP_SRGB_BLOCK_IMG => Some("PVRTC2_4BPP_SRGB_BLOCK_IMG"),
-            Self::G8B8G8R8_422_UNORM => Some("G8B8G8R8_422_UNORM"),
-            Self::B8G8R8G8_422_UNORM => Some("B8G8R8G8_422_UNORM"),
-            Self::G8_B8_R8_3PLANE_420_UNORM => Some("G8_B8_R8_3PLANE_420_UNORM"),
-            Self::G8_B8R8_2PLANE_420_UNORM => Some("G8_B8R8_2PLANE_420_UNORM"),
-            Self::G8_B8_R8_3PLANE_422_UNORM => Some("G8_B8_R8_3PLANE_422_UNORM"),
-            Self::G8_B8R8_2PLANE_422_UNORM => Some("G8_B8R8_2PLANE_422_UNORM"),
-            Self::G8_B8_R8_3PLANE_444_UNORM => Some("G8_B8_R8_3PLANE_444_UNORM"),
-            Self::R10X6_UNORM_PACK16 => Some("R10X6_UNORM_PACK16"),
-            Self::R10X6G10X6_UNORM_2PACK16 => Some("R10X6G10X6_UNORM_2PACK16"),
-            Self::R10X6G10X6B10X6A10X6_UNORM_4PACK16 => Some("R10X6G10X6B10X6A10X6_UNORM_4PACK16"),
-            Self::G10X6B10X6G10X6R10X6_422_UNORM_4PACK16 => {
-                Some("G10X6B10X6G10X6R10X6_422_UNORM_4PACK16")
-            }
-            Self::B10X6G10X6R10X6G10X6_422_UNORM_4PACK16 => {
-                Some("B10X6G10X6R10X6G10X6_422_UNORM_4PACK16")
-            }
-            Self::G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16 => {
-                Some("G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16")
-            }
-            Self::G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16 => {
-                Some("G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16")
-            }
-            Self::G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16 => {
-                Some("G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16")
-            }
-            Self::G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16 => {
-                Some("G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16")
-            }
-            Self::G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16 => {
-                Some("G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16")
-            }
-            Self::R12X4_UNORM_PACK16 => Some("R12X4_UNORM_PACK16"),
-            Self::R12X4G12X4_UNORM_2PACK16 => Some("R12X4G12X4_UNORM_2PACK16"),
-            Self::R12X4G12X4B12X4A12X4_UNORM_4PACK16 => Some("R12X4G12X4B12X4A12X4_UNORM_4PACK16"),
-            Self::G12X4B12X4G12X4R12X4_422_UNORM_4PACK16 => {
-                Some("G12X4B12X4G12X4R12X4_422_UNORM_4PACK16")
-            }
-            Self::B12X4G12X4R12X4G12X4_422_UNORM_4PACK16 => {
-                Some("B12X4G12X4R12X4G12X4_422_UNORM_4PACK16")
-            }
-            Self::G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16 => {
-                Some("G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16")
-            }
-            Self::G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16 => {
-                Some("G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16")
-            }
-            Self::G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16 => {
-                Some("G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16")
-            }
-            Self::G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16 => {
-                Some("G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16")
-            }
-            Self::G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16 => {
-                Some("G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16")
-            }
-            Self::G16B16G16R16_422_UNORM => Some("G16B16G16R16_422_UNORM"),
-            Self::B16G16R16G16_422_UNORM => Some("B16G16R16G16_422_UNORM"),
-            Self::G16_B16_R16_3PLANE_420_UNORM => Some("G16_B16_R16_3PLANE_420_UNORM"),
-            Self::G16_B16R16_2PLANE_420_UNORM => Some("G16_B16R16_2PLANE_420_UNORM"),
-            Self::G16_B16_R16_3PLANE_422_UNORM => Some("G16_B16_R16_3PLANE_422_UNORM"),
-            Self::G16_B16R16_2PLANE_422_UNORM => Some("G16_B16R16_2PLANE_422_UNORM"),
-            Self::G16_B16_R16_3PLANE_444_UNORM => Some("G16_B16_R16_3PLANE_444_UNORM"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ConditionalRenderingFlagsEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(ConditionalRenderingFlagsEXT::INVERTED.0, "INVERTED")];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for AccessFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                AccessFlags::INDIRECT_COMMAND_READ.0,
-                "INDIRECT_COMMAND_READ",
-            ),
-            (AccessFlags::INDEX_READ.0, "INDEX_READ"),
-            (
-                AccessFlags::VERTEX_ATTRIBUTE_READ.0,
-                "VERTEX_ATTRIBUTE_READ",
-            ),
-            (AccessFlags::UNIFORM_READ.0, "UNIFORM_READ"),
-            (
-                AccessFlags::INPUT_ATTACHMENT_READ.0,
-                "INPUT_ATTACHMENT_READ",
-            ),
-            (AccessFlags::SHADER_READ.0, "SHADER_READ"),
-            (AccessFlags::SHADER_WRITE.0, "SHADER_WRITE"),
-            (
-                AccessFlags::COLOR_ATTACHMENT_READ.0,
-                "COLOR_ATTACHMENT_READ",
-            ),
-            (
-                AccessFlags::COLOR_ATTACHMENT_WRITE.0,
-                "COLOR_ATTACHMENT_WRITE",
-            ),
-            (
-                AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ.0,
-                "DEPTH_STENCIL_ATTACHMENT_READ",
-            ),
-            (
-                AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE.0,
-                "DEPTH_STENCIL_ATTACHMENT_WRITE",
-            ),
-            (AccessFlags::TRANSFER_READ.0, "TRANSFER_READ"),
-            (AccessFlags::TRANSFER_WRITE.0, "TRANSFER_WRITE"),
-            (AccessFlags::HOST_READ.0, "HOST_READ"),
-            (AccessFlags::HOST_WRITE.0, "HOST_WRITE"),
-            (AccessFlags::MEMORY_READ.0, "MEMORY_READ"),
-            (AccessFlags::MEMORY_WRITE.0, "MEMORY_WRITE"),
-            (
-                AccessFlags::TRANSFORM_FEEDBACK_WRITE_EXT.0,
-                "TRANSFORM_FEEDBACK_WRITE_EXT",
-            ),
-            (
-                AccessFlags::TRANSFORM_FEEDBACK_COUNTER_READ_EXT.0,
-                "TRANSFORM_FEEDBACK_COUNTER_READ_EXT",
-            ),
-            (
-                AccessFlags::TRANSFORM_FEEDBACK_COUNTER_WRITE_EXT.0,
-                "TRANSFORM_FEEDBACK_COUNTER_WRITE_EXT",
-            ),
-            (
-                AccessFlags::CONDITIONAL_RENDERING_READ_EXT.0,
-                "CONDITIONAL_RENDERING_READ_EXT",
-            ),
-            (
-                AccessFlags::COMMAND_PROCESS_READ_NVX.0,
-                "COMMAND_PROCESS_READ_NVX",
-            ),
-            (
-                AccessFlags::COMMAND_PROCESS_WRITE_NVX.0,
-                "COMMAND_PROCESS_WRITE_NVX",
-            ),
-            (
-                AccessFlags::COLOR_ATTACHMENT_READ_NONCOHERENT_EXT.0,
-                "COLOR_ATTACHMENT_READ_NONCOHERENT_EXT",
-            ),
-            (
-                AccessFlags::SHADING_RATE_IMAGE_READ_NV.0,
-                "SHADING_RATE_IMAGE_READ_NV",
-            ),
-            (
-                AccessFlags::ACCELERATION_STRUCTURE_READ_NV.0,
-                "ACCELERATION_STRUCTURE_READ_NV",
-            ),
-            (
-                AccessFlags::ACCELERATION_STRUCTURE_WRITE_NV.0,
-                "ACCELERATION_STRUCTURE_WRITE_NV",
-            ),
-            (AccessFlags::RESERVED_24_EXT.0, "RESERVED_24_EXT"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for DiscardRectangleModeEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::INCLUSIVE => Some("INCLUSIVE"),
-            Self::EXCLUSIVE => Some("EXCLUSIVE"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for SubgroupFeatureFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (SubgroupFeatureFlags::BASIC.0, "BASIC"),
-            (SubgroupFeatureFlags::VOTE.0, "VOTE"),
-            (SubgroupFeatureFlags::ARITHMETIC.0, "ARITHMETIC"),
-            (SubgroupFeatureFlags::BALLOT.0, "BALLOT"),
-            (SubgroupFeatureFlags::SHUFFLE.0, "SHUFFLE"),
-            (SubgroupFeatureFlags::SHUFFLE_RELATIVE.0, "SHUFFLE_RELATIVE"),
-            (SubgroupFeatureFlags::CLUSTERED.0, "CLUSTERED"),
-            (SubgroupFeatureFlags::QUAD.0, "QUAD"),
-            (SubgroupFeatureFlags::PARTITIONED_NV.0, "PARTITIONED_NV"),
-        ];
+        const KNOWN : & [ ( Flags , & str ) ] = & [ ( FormatFeatureFlags :: SAMPLED_IMAGE . 0 , "SAMPLED_IMAGE" ) , ( FormatFeatureFlags :: STORAGE_IMAGE . 0 , "STORAGE_IMAGE" ) , ( FormatFeatureFlags :: STORAGE_IMAGE_ATOMIC . 0 , "STORAGE_IMAGE_ATOMIC" ) , ( FormatFeatureFlags :: UNIFORM_TEXEL_BUFFER . 0 , "UNIFORM_TEXEL_BUFFER" ) , ( FormatFeatureFlags :: STORAGE_TEXEL_BUFFER . 0 , "STORAGE_TEXEL_BUFFER" ) , ( FormatFeatureFlags :: STORAGE_TEXEL_BUFFER_ATOMIC . 0 , "STORAGE_TEXEL_BUFFER_ATOMIC" ) , ( FormatFeatureFlags :: VERTEX_BUFFER . 0 , "VERTEX_BUFFER" ) , ( FormatFeatureFlags :: COLOR_ATTACHMENT . 0 , "COLOR_ATTACHMENT" ) , ( FormatFeatureFlags :: COLOR_ATTACHMENT_BLEND . 0 , "COLOR_ATTACHMENT_BLEND" ) , ( FormatFeatureFlags :: DEPTH_STENCIL_ATTACHMENT . 0 , "DEPTH_STENCIL_ATTACHMENT" ) , ( FormatFeatureFlags :: BLIT_SRC . 0 , "BLIT_SRC" ) , ( FormatFeatureFlags :: BLIT_DST . 0 , "BLIT_DST" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_FILTER_LINEAR . 0 , "SAMPLED_IMAGE_FILTER_LINEAR" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_FILTER_CUBIC_IMG . 0 , "SAMPLED_IMAGE_FILTER_CUBIC_IMG" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_FILTER_MINMAX_EXT . 0 , "SAMPLED_IMAGE_FILTER_MINMAX_EXT" ) , ( FormatFeatureFlags :: RESERVED_24_EXT . 0 , "RESERVED_24_EXT" ) , ( FormatFeatureFlags :: TRANSFER_SRC . 0 , "TRANSFER_SRC" ) , ( FormatFeatureFlags :: TRANSFER_DST . 0 , "TRANSFER_DST" ) , ( FormatFeatureFlags :: MIDPOINT_CHROMA_SAMPLES . 0 , "MIDPOINT_CHROMA_SAMPLES" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER . 0 , "SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER . 0 , "SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT . 0 , "SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE . 0 , "SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE" ) , ( FormatFeatureFlags :: DISJOINT . 0 , "DISJOINT" ) , ( FormatFeatureFlags :: COSITED_CHROMA_SAMPLES . 0 , "COSITED_CHROMA_SAMPLES" ) ] ;
         display_flags(f, KNOWN, self.0)
     }
 }
@@ -52793,211 +54833,28 @@ impl fmt::Display for CompositeAlphaFlagsKHR {
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for PointClippingBehavior {
+impl fmt::Display for CommandBufferResetFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::ALL_CLIP_PLANES => Some("ALL_CLIP_PLANES"),
-            Self::USER_CLIP_PLANES_ONLY => Some("USER_CLIP_PLANES_ONLY"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for CommandBufferUsageFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                CommandBufferUsageFlags::ONE_TIME_SUBMIT.0,
-                "ONE_TIME_SUBMIT",
-            ),
-            (
-                CommandBufferUsageFlags::RENDER_PASS_CONTINUE.0,
-                "RENDER_PASS_CONTINUE",
-            ),
-            (
-                CommandBufferUsageFlags::SIMULTANEOUS_USE.0,
-                "SIMULTANEOUS_USE",
-            ),
-        ];
+        const KNOWN: &[(Flags, &str)] = &[(
+            CommandBufferResetFlags::RELEASE_RESOURCES.0,
+            "RELEASE_RESOURCES",
+        )];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for ImageUsageFlags {
+impl fmt::Display for DebugReportFlagsEXT {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
-            (ImageUsageFlags::TRANSFER_SRC.0, "TRANSFER_SRC"),
-            (ImageUsageFlags::TRANSFER_DST.0, "TRANSFER_DST"),
-            (ImageUsageFlags::SAMPLED.0, "SAMPLED"),
-            (ImageUsageFlags::STORAGE.0, "STORAGE"),
-            (ImageUsageFlags::COLOR_ATTACHMENT.0, "COLOR_ATTACHMENT"),
+            (DebugReportFlagsEXT::INFORMATION.0, "INFORMATION"),
+            (DebugReportFlagsEXT::WARNING.0, "WARNING"),
             (
-                ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT.0,
-                "DEPTH_STENCIL_ATTACHMENT",
+                DebugReportFlagsEXT::PERFORMANCE_WARNING.0,
+                "PERFORMANCE_WARNING",
             ),
-            (
-                ImageUsageFlags::TRANSIENT_ATTACHMENT.0,
-                "TRANSIENT_ATTACHMENT",
-            ),
-            (ImageUsageFlags::INPUT_ATTACHMENT.0, "INPUT_ATTACHMENT"),
-            (
-                ImageUsageFlags::SHADING_RATE_IMAGE_NV.0,
-                "SHADING_RATE_IMAGE_NV",
-            ),
-            (ImageUsageFlags::RESERVED_9_EXT.0, "RESERVED_9_EXT"),
+            (DebugReportFlagsEXT::ERROR.0, "ERROR"),
+            (DebugReportFlagsEXT::DEBUG.0, "DEBUG"),
         ];
         display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for IndexType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::UINT16 => Some("UINT16"),
-            Self::UINT32 => Some("UINT32"),
-            Self::NONE_NV => Some("NONE_NV"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for DescriptorBindingFlagsEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                DescriptorBindingFlagsEXT::UPDATE_AFTER_BIND.0,
-                "UPDATE_AFTER_BIND",
-            ),
-            (
-                DescriptorBindingFlagsEXT::UPDATE_UNUSED_WHILE_PENDING.0,
-                "UPDATE_UNUSED_WHILE_PENDING",
-            ),
-            (
-                DescriptorBindingFlagsEXT::PARTIALLY_BOUND.0,
-                "PARTIALLY_BOUND",
-            ),
-            (
-                DescriptorBindingFlagsEXT::VARIABLE_DESCRIPTOR_COUNT.0,
-                "VARIABLE_DESCRIPTOR_COUNT",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for ExternalMemoryHandleTypeFlagsNV {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                ExternalMemoryHandleTypeFlagsNV::EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_NV.0,
-                "EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_NV",
-            ),
-            (
-                ExternalMemoryHandleTypeFlagsNV::EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_NV.0,
-                "EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_NV",
-            ),
-            (
-                ExternalMemoryHandleTypeFlagsNV::EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_IMAGE_NV.0,
-                "EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_IMAGE_NV",
-            ),
-            (
-                ExternalMemoryHandleTypeFlagsNV::EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_IMAGE_KMT_NV.0,
-                "EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_IMAGE_KMT_NV",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for ShaderStageFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (ShaderStageFlags::VERTEX.0, "VERTEX"),
-            (
-                ShaderStageFlags::TESSELLATION_CONTROL.0,
-                "TESSELLATION_CONTROL",
-            ),
-            (
-                ShaderStageFlags::TESSELLATION_EVALUATION.0,
-                "TESSELLATION_EVALUATION",
-            ),
-            (ShaderStageFlags::GEOMETRY.0, "GEOMETRY"),
-            (ShaderStageFlags::FRAGMENT.0, "FRAGMENT"),
-            (ShaderStageFlags::COMPUTE.0, "COMPUTE"),
-            (ShaderStageFlags::ALL_GRAPHICS.0, "ALL_GRAPHICS"),
-            (ShaderStageFlags::ALL.0, "ALL"),
-            (ShaderStageFlags::RAYGEN_NV.0, "RAYGEN_NV"),
-            (ShaderStageFlags::ANY_HIT_NV.0, "ANY_HIT_NV"),
-            (ShaderStageFlags::CLOSEST_HIT_NV.0, "CLOSEST_HIT_NV"),
-            (ShaderStageFlags::MISS_NV.0, "MISS_NV"),
-            (ShaderStageFlags::INTERSECTION_NV.0, "INTERSECTION_NV"),
-            (ShaderStageFlags::CALLABLE_NV.0, "CALLABLE_NV"),
-            (ShaderStageFlags::TASK_NV.0, "TASK_NV"),
-            (ShaderStageFlags::MESH_NV.0, "MESH_NV"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for ExternalFenceFeatureFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                ExternalFenceFeatureFlags::EXTERNAL_FENCE_FEATURE_EXPORTABLE.0,
-                "EXTERNAL_FENCE_FEATURE_EXPORTABLE",
-            ),
-            (
-                ExternalFenceFeatureFlags::EXTERNAL_FENCE_FEATURE_IMPORTABLE.0,
-                "EXTERNAL_FENCE_FEATURE_IMPORTABLE",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for DisplayPowerStateEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::OFF => Some("OFF"),
-            Self::SUSPEND => Some("SUSPEND"),
-            Self::ON => Some("ON"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for QueueFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (QueueFlags::GRAPHICS.0, "GRAPHICS"),
-            (QueueFlags::COMPUTE.0, "COMPUTE"),
-            (QueueFlags::TRANSFER.0, "TRANSFER"),
-            (QueueFlags::SPARSE_BINDING.0, "SPARSE_BINDING"),
-            (QueueFlags::PROTECTED.0, "PROTECTED"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for TimeDomainEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::DEVICE => Some("DEVICE"),
-            Self::CLOCK_MONOTONIC => Some("CLOCK_MONOTONIC"),
-            Self::CLOCK_MONOTONIC_RAW => Some("CLOCK_MONOTONIC_RAW"),
-            Self::QUERY_PERFORMANCE_COUNTER => Some("QUERY_PERFORMANCE_COUNTER"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
     }
 }
 impl fmt::Display for StructureType {
@@ -53592,205 +55449,29 @@ impl fmt::Display for StructureType {
         }
     }
 }
-impl fmt::Display for FenceImportFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(FenceImportFlags::TEMPORARY.0, "TEMPORARY")];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for AttachmentLoadOp {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::LOAD => Some("LOAD"),
-            Self::CLEAR => Some("CLEAR"),
-            Self::DONT_CARE => Some("DONT_CARE"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for BufferCreateFlags {
+impl fmt::Display for StencilFaceFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
-            (BufferCreateFlags::SPARSE_BINDING.0, "SPARSE_BINDING"),
-            (BufferCreateFlags::SPARSE_RESIDENCY.0, "SPARSE_RESIDENCY"),
-            (BufferCreateFlags::SPARSE_ALIASED.0, "SPARSE_ALIASED"),
-            (BufferCreateFlags::PROTECTED.0, "PROTECTED"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for PolygonMode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::FILL => Some("FILL"),
-            Self::LINE => Some("LINE"),
-            Self::POINT => Some("POINT"),
-            Self::FILL_RECTANGLE_NV => Some("FILL_RECTANGLE_NV"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ConservativeRasterizationModeEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::DISABLED => Some("DISABLED"),
-            Self::OVERESTIMATE => Some("OVERESTIMATE"),
-            Self::UNDERESTIMATE => Some("UNDERESTIMATE"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for StencilOp {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::KEEP => Some("KEEP"),
-            Self::ZERO => Some("ZERO"),
-            Self::REPLACE => Some("REPLACE"),
-            Self::INCREMENT_AND_CLAMP => Some("INCREMENT_AND_CLAMP"),
-            Self::DECREMENT_AND_CLAMP => Some("DECREMENT_AND_CLAMP"),
-            Self::INVERT => Some("INVERT"),
-            Self::INCREMENT_AND_WRAP => Some("INCREMENT_AND_WRAP"),
-            Self::DECREMENT_AND_WRAP => Some("DECREMENT_AND_WRAP"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for BorderColor {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::FLOAT_TRANSPARENT_BLACK => Some("FLOAT_TRANSPARENT_BLACK"),
-            Self::INT_TRANSPARENT_BLACK => Some("INT_TRANSPARENT_BLACK"),
-            Self::FLOAT_OPAQUE_BLACK => Some("FLOAT_OPAQUE_BLACK"),
-            Self::INT_OPAQUE_BLACK => Some("INT_OPAQUE_BLACK"),
-            Self::FLOAT_OPAQUE_WHITE => Some("FLOAT_OPAQUE_WHITE"),
-            Self::INT_OPAQUE_WHITE => Some("INT_OPAQUE_WHITE"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for AccelerationStructureMemoryRequirementsTypeNV {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::OBJECT => Some("OBJECT"),
-            Self::BUILD_SCRATCH => Some("BUILD_SCRATCH"),
-            Self::UPDATE_SCRATCH => Some("UPDATE_SCRATCH"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for InternalAllocationType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::EXECUTABLE => Some("EXECUTABLE"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ObjectEntryUsageFlagsNVX {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (ObjectEntryUsageFlagsNVX::GRAPHICS.0, "GRAPHICS"),
-            (ObjectEntryUsageFlagsNVX::COMPUTE.0, "COMPUTE"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for DebugReportFlagsEXT {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (DebugReportFlagsEXT::INFORMATION.0, "INFORMATION"),
-            (DebugReportFlagsEXT::WARNING.0, "WARNING"),
+            (StencilFaceFlags::FRONT.0, "FRONT"),
+            (StencilFaceFlags::BACK.0, "BACK"),
             (
-                DebugReportFlagsEXT::PERFORMANCE_WARNING.0,
-                "PERFORMANCE_WARNING",
-            ),
-            (DebugReportFlagsEXT::ERROR.0, "ERROR"),
-            (DebugReportFlagsEXT::DEBUG.0, "DEBUG"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for CopyAccelerationStructureModeNV {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::CLONE => Some("CLONE"),
-            Self::COMPACT => Some("COMPACT"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for ExternalMemoryFeatureFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                ExternalMemoryFeatureFlags::EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY.0,
-                "EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY",
-            ),
-            (
-                ExternalMemoryFeatureFlags::EXTERNAL_MEMORY_FEATURE_EXPORTABLE.0,
-                "EXTERNAL_MEMORY_FEATURE_EXPORTABLE",
-            ),
-            (
-                ExternalMemoryFeatureFlags::EXTERNAL_MEMORY_FEATURE_IMPORTABLE.0,
-                "EXTERNAL_MEMORY_FEATURE_IMPORTABLE",
+                StencilFaceFlags::STENCIL_FRONT_AND_BACK.0,
+                "STENCIL_FRONT_AND_BACK",
             ),
         ];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for Filter {
+impl fmt::Display for SwapchainCreateFlagsKHR {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::NEAREST => Some("NEAREST"),
-            Self::LINEAR => Some("LINEAR"),
-            Self::CUBIC_IMG => Some("CUBIC_IMG"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                SwapchainCreateFlagsKHR::SPLIT_INSTANCE_BIND_REGIONS.0,
+                "SPLIT_INSTANCE_BIND_REGIONS",
+            ),
+            (SwapchainCreateFlagsKHR::PROTECTED.0, "PROTECTED"),
+        ];
+        display_flags(f, KNOWN, self.0)
     }
 }
 impl fmt::Display for ShadingRatePaletteEntryNV {
@@ -53817,78 +55498,170 @@ impl fmt::Display for ShadingRatePaletteEntryNV {
         }
     }
 }
-impl fmt::Display for ExternalSemaphoreHandleTypeFlags {
+impl fmt::Display for ExternalFenceHandleTypeFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
             (
-                ExternalSemaphoreHandleTypeFlags::EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD.0,
-                "EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD",
+                ExternalFenceHandleTypeFlags::EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD.0,
+                "EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD",
             ),
             (
-                ExternalSemaphoreHandleTypeFlags::EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32.0,
-                "EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32",
+                ExternalFenceHandleTypeFlags::EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_WIN32.0,
+                "EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_WIN32",
             ),
             (
-                ExternalSemaphoreHandleTypeFlags::EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_KMT.0,
-                "EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_WIN32_KMT",
+                ExternalFenceHandleTypeFlags::EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_WIN32_KMT.0,
+                "EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_WIN32_KMT",
             ),
             (
-                ExternalSemaphoreHandleTypeFlags::EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE.0,
-                "EXTERNAL_SEMAPHORE_HANDLE_TYPE_D3D12_FENCE",
-            ),
-            (
-                ExternalSemaphoreHandleTypeFlags::EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD.0,
-                "EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD",
+                ExternalFenceHandleTypeFlags::EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD.0,
+                "EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD",
             ),
         ];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for BuildAccelerationStructureFlagsNV {
+impl fmt::Display for PeerMemoryFeatureFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
-            (
-                BuildAccelerationStructureFlagsNV::ALLOW_UPDATE.0,
-                "ALLOW_UPDATE",
-            ),
-            (
-                BuildAccelerationStructureFlagsNV::ALLOW_COMPACTION.0,
-                "ALLOW_COMPACTION",
-            ),
-            (
-                BuildAccelerationStructureFlagsNV::PREFER_FAST_TRACE.0,
-                "PREFER_FAST_TRACE",
-            ),
-            (
-                BuildAccelerationStructureFlagsNV::PREFER_FAST_BUILD.0,
-                "PREFER_FAST_BUILD",
-            ),
-            (
-                BuildAccelerationStructureFlagsNV::LOW_MEMORY.0,
-                "LOW_MEMORY",
-            ),
+            (PeerMemoryFeatureFlags::COPY_SRC.0, "COPY_SRC"),
+            (PeerMemoryFeatureFlags::COPY_DST.0, "COPY_DST"),
+            (PeerMemoryFeatureFlags::GENERIC_SRC.0, "GENERIC_SRC"),
+            (PeerMemoryFeatureFlags::GENERIC_DST.0, "GENERIC_DST"),
         ];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for DebugUtilsMessageSeverityFlagsEXT {
+impl fmt::Display for AccessFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
-            (DebugUtilsMessageSeverityFlagsEXT::VERBOSE.0, "VERBOSE"),
-            (DebugUtilsMessageSeverityFlagsEXT::INFO.0, "INFO"),
-            (DebugUtilsMessageSeverityFlagsEXT::WARNING.0, "WARNING"),
-            (DebugUtilsMessageSeverityFlagsEXT::ERROR.0, "ERROR"),
+            (
+                AccessFlags::INDIRECT_COMMAND_READ.0,
+                "INDIRECT_COMMAND_READ",
+            ),
+            (AccessFlags::INDEX_READ.0, "INDEX_READ"),
+            (
+                AccessFlags::VERTEX_ATTRIBUTE_READ.0,
+                "VERTEX_ATTRIBUTE_READ",
+            ),
+            (AccessFlags::UNIFORM_READ.0, "UNIFORM_READ"),
+            (
+                AccessFlags::INPUT_ATTACHMENT_READ.0,
+                "INPUT_ATTACHMENT_READ",
+            ),
+            (AccessFlags::SHADER_READ.0, "SHADER_READ"),
+            (AccessFlags::SHADER_WRITE.0, "SHADER_WRITE"),
+            (
+                AccessFlags::COLOR_ATTACHMENT_READ.0,
+                "COLOR_ATTACHMENT_READ",
+            ),
+            (
+                AccessFlags::COLOR_ATTACHMENT_WRITE.0,
+                "COLOR_ATTACHMENT_WRITE",
+            ),
+            (
+                AccessFlags::DEPTH_STENCIL_ATTACHMENT_READ.0,
+                "DEPTH_STENCIL_ATTACHMENT_READ",
+            ),
+            (
+                AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE.0,
+                "DEPTH_STENCIL_ATTACHMENT_WRITE",
+            ),
+            (AccessFlags::TRANSFER_READ.0, "TRANSFER_READ"),
+            (AccessFlags::TRANSFER_WRITE.0, "TRANSFER_WRITE"),
+            (AccessFlags::HOST_READ.0, "HOST_READ"),
+            (AccessFlags::HOST_WRITE.0, "HOST_WRITE"),
+            (AccessFlags::MEMORY_READ.0, "MEMORY_READ"),
+            (AccessFlags::MEMORY_WRITE.0, "MEMORY_WRITE"),
+            (
+                AccessFlags::TRANSFORM_FEEDBACK_WRITE_EXT.0,
+                "TRANSFORM_FEEDBACK_WRITE_EXT",
+            ),
+            (
+                AccessFlags::TRANSFORM_FEEDBACK_COUNTER_READ_EXT.0,
+                "TRANSFORM_FEEDBACK_COUNTER_READ_EXT",
+            ),
+            (
+                AccessFlags::TRANSFORM_FEEDBACK_COUNTER_WRITE_EXT.0,
+                "TRANSFORM_FEEDBACK_COUNTER_WRITE_EXT",
+            ),
+            (
+                AccessFlags::CONDITIONAL_RENDERING_READ_EXT.0,
+                "CONDITIONAL_RENDERING_READ_EXT",
+            ),
+            (
+                AccessFlags::COMMAND_PROCESS_READ_NVX.0,
+                "COMMAND_PROCESS_READ_NVX",
+            ),
+            (
+                AccessFlags::COMMAND_PROCESS_WRITE_NVX.0,
+                "COMMAND_PROCESS_WRITE_NVX",
+            ),
+            (
+                AccessFlags::COLOR_ATTACHMENT_READ_NONCOHERENT_EXT.0,
+                "COLOR_ATTACHMENT_READ_NONCOHERENT_EXT",
+            ),
+            (
+                AccessFlags::SHADING_RATE_IMAGE_READ_NV.0,
+                "SHADING_RATE_IMAGE_READ_NV",
+            ),
+            (
+                AccessFlags::ACCELERATION_STRUCTURE_READ_NV.0,
+                "ACCELERATION_STRUCTURE_READ_NV",
+            ),
+            (
+                AccessFlags::ACCELERATION_STRUCTURE_WRITE_NV.0,
+                "ACCELERATION_STRUCTURE_WRITE_NV",
+            ),
+            (AccessFlags::RESERVED_24_EXT.0, "RESERVED_24_EXT"),
         ];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for CoverageModulationModeNV {
+impl fmt::Display for ImageCreateFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (ImageCreateFlags::SPARSE_BINDING.0, "SPARSE_BINDING"),
+            (ImageCreateFlags::SPARSE_RESIDENCY.0, "SPARSE_RESIDENCY"),
+            (ImageCreateFlags::SPARSE_ALIASED.0, "SPARSE_ALIASED"),
+            (ImageCreateFlags::MUTABLE_FORMAT.0, "MUTABLE_FORMAT"),
+            (ImageCreateFlags::CUBE_COMPATIBLE.0, "CUBE_COMPATIBLE"),
+            (ImageCreateFlags::CORNER_SAMPLED_NV.0, "CORNER_SAMPLED_NV"),
+            (
+                ImageCreateFlags::SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_EXT.0,
+                "SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_EXT",
+            ),
+            (ImageCreateFlags::RESERVED_14_EXT.0, "RESERVED_14_EXT"),
+            (ImageCreateFlags::ALIAS.0, "ALIAS"),
+            (
+                ImageCreateFlags::SPLIT_INSTANCE_BIND_REGIONS.0,
+                "SPLIT_INSTANCE_BIND_REGIONS",
+            ),
+            (
+                ImageCreateFlags::TYPE_2D_ARRAY_COMPATIBLE.0,
+                "TYPE_2D_ARRAY_COMPATIBLE",
+            ),
+            (
+                ImageCreateFlags::BLOCK_TEXEL_VIEW_COMPATIBLE.0,
+                "BLOCK_TEXEL_VIEW_COMPATIBLE",
+            ),
+            (ImageCreateFlags::EXTENDED_USAGE.0, "EXTENDED_USAGE"),
+            (ImageCreateFlags::PROTECTED.0, "PROTECTED"),
+            (ImageCreateFlags::DISJOINT.0, "DISJOINT"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for ImageViewType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::NONE => Some("NONE"),
-            Self::RGB => Some("RGB"),
-            Self::ALPHA => Some("ALPHA"),
-            Self::RGBA => Some("RGBA"),
+            Self::TYPE_1D => Some("TYPE_1D"),
+            Self::TYPE_2D => Some("TYPE_2D"),
+            Self::TYPE_3D => Some("TYPE_3D"),
+            Self::CUBE => Some("CUBE"),
+            Self::TYPE_1D_ARRAY => Some("TYPE_1D_ARRAY"),
+            Self::TYPE_2D_ARRAY => Some("TYPE_2D_ARRAY"),
+            Self::CUBE_ARRAY => Some("CUBE_ARRAY"),
             _ => None,
         };
         if let Some(x) = name {
@@ -53904,22 +55677,20 @@ impl fmt::Display for FenceCreateFlags {
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for DescriptorType {
+impl fmt::Display for PrimitiveTopology {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::SAMPLER => Some("SAMPLER"),
-            Self::COMBINED_IMAGE_SAMPLER => Some("COMBINED_IMAGE_SAMPLER"),
-            Self::SAMPLED_IMAGE => Some("SAMPLED_IMAGE"),
-            Self::STORAGE_IMAGE => Some("STORAGE_IMAGE"),
-            Self::UNIFORM_TEXEL_BUFFER => Some("UNIFORM_TEXEL_BUFFER"),
-            Self::STORAGE_TEXEL_BUFFER => Some("STORAGE_TEXEL_BUFFER"),
-            Self::UNIFORM_BUFFER => Some("UNIFORM_BUFFER"),
-            Self::STORAGE_BUFFER => Some("STORAGE_BUFFER"),
-            Self::UNIFORM_BUFFER_DYNAMIC => Some("UNIFORM_BUFFER_DYNAMIC"),
-            Self::STORAGE_BUFFER_DYNAMIC => Some("STORAGE_BUFFER_DYNAMIC"),
-            Self::INPUT_ATTACHMENT => Some("INPUT_ATTACHMENT"),
-            Self::INLINE_UNIFORM_BLOCK_EXT => Some("INLINE_UNIFORM_BLOCK_EXT"),
-            Self::ACCELERATION_STRUCTURE_NV => Some("ACCELERATION_STRUCTURE_NV"),
+            Self::POINT_LIST => Some("POINT_LIST"),
+            Self::LINE_LIST => Some("LINE_LIST"),
+            Self::LINE_STRIP => Some("LINE_STRIP"),
+            Self::TRIANGLE_LIST => Some("TRIANGLE_LIST"),
+            Self::TRIANGLE_STRIP => Some("TRIANGLE_STRIP"),
+            Self::TRIANGLE_FAN => Some("TRIANGLE_FAN"),
+            Self::LINE_LIST_WITH_ADJACENCY => Some("LINE_LIST_WITH_ADJACENCY"),
+            Self::LINE_STRIP_WITH_ADJACENCY => Some("LINE_STRIP_WITH_ADJACENCY"),
+            Self::TRIANGLE_LIST_WITH_ADJACENCY => Some("TRIANGLE_LIST_WITH_ADJACENCY"),
+            Self::TRIANGLE_STRIP_WITH_ADJACENCY => Some("TRIANGLE_STRIP_WITH_ADJACENCY"),
+            Self::PATCH_LIST => Some("PATCH_LIST"),
             _ => None,
         };
         if let Some(x) = name {
@@ -53929,11 +55700,10 @@ impl fmt::Display for DescriptorType {
         }
     }
 }
-impl fmt::Display for FrontFace {
+impl fmt::Display for DisplayEventTypeEXT {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::COUNTER_CLOCKWISE => Some("COUNTER_CLOCKWISE"),
-            Self::CLOCKWISE => Some("CLOCKWISE"),
+            Self::FIRST_PIXEL_OUT => Some("FIRST_PIXEL_OUT"),
             _ => None,
         };
         if let Some(x) = name {
@@ -53943,11 +55713,14 @@ impl fmt::Display for FrontFace {
         }
     }
 }
-impl fmt::Display for CommandBufferLevel {
+impl fmt::Display for SamplerYcbcrModelConversion {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::PRIMARY => Some("PRIMARY"),
-            Self::SECONDARY => Some("SECONDARY"),
+            Self::RGB_IDENTITY => Some("RGB_IDENTITY"),
+            Self::YCBCR_IDENTITY => Some("YCBCR_IDENTITY"),
+            Self::YCBCR_709 => Some("YCBCR_709"),
+            Self::YCBCR_601 => Some("YCBCR_601"),
+            Self::YCBCR_2020 => Some("YCBCR_2020"),
             _ => None,
         };
         if let Some(x) = name {
@@ -53957,40 +55730,50 @@ impl fmt::Display for CommandBufferLevel {
         }
     }
 }
-impl fmt::Display for ImageAspectFlags {
+impl fmt::Display for ShaderInfoTypeAMD {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::STATISTICS => Some("STATISTICS"),
+            Self::BINARY => Some("BINARY"),
+            Self::DISASSEMBLY => Some("DISASSEMBLY"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ExternalMemoryFeatureFlagsNV {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
-            (ImageAspectFlags::COLOR.0, "COLOR"),
-            (ImageAspectFlags::DEPTH.0, "DEPTH"),
-            (ImageAspectFlags::STENCIL.0, "STENCIL"),
-            (ImageAspectFlags::METADATA.0, "METADATA"),
-            (ImageAspectFlags::MEMORY_PLANE_0_EXT.0, "MEMORY_PLANE_0_EXT"),
-            (ImageAspectFlags::MEMORY_PLANE_1_EXT.0, "MEMORY_PLANE_1_EXT"),
-            (ImageAspectFlags::MEMORY_PLANE_2_EXT.0, "MEMORY_PLANE_2_EXT"),
-            (ImageAspectFlags::MEMORY_PLANE_3_EXT.0, "MEMORY_PLANE_3_EXT"),
-            (ImageAspectFlags::PLANE_0.0, "PLANE_0"),
-            (ImageAspectFlags::PLANE_1.0, "PLANE_1"),
-            (ImageAspectFlags::PLANE_2.0, "PLANE_2"),
+            (
+                ExternalMemoryFeatureFlagsNV::EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY_NV.0,
+                "EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY_NV",
+            ),
+            (
+                ExternalMemoryFeatureFlagsNV::EXTERNAL_MEMORY_FEATURE_EXPORTABLE_NV.0,
+                "EXTERNAL_MEMORY_FEATURE_EXPORTABLE_NV",
+            ),
+            (
+                ExternalMemoryFeatureFlagsNV::EXTERNAL_MEMORY_FEATURE_IMPORTABLE_NV.0,
+                "EXTERNAL_MEMORY_FEATURE_IMPORTABLE_NV",
+            ),
         ];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for CullModeFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (CullModeFlags::NONE.0, "NONE"),
-            (CullModeFlags::FRONT.0, "FRONT"),
-            (CullModeFlags::BACK.0, "BACK"),
-            (CullModeFlags::FRONT_AND_BACK.0, "FRONT_AND_BACK"),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for AttachmentStoreOp {
+impl fmt::Display for ComponentSwizzle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::STORE => Some("STORE"),
-            Self::DONT_CARE => Some("DONT_CARE"),
+            Self::IDENTITY => Some("IDENTITY"),
+            Self::ZERO => Some("ZERO"),
+            Self::ONE => Some("ONE"),
+            Self::R => Some("R"),
+            Self::G => Some("G"),
+            Self::B => Some("B"),
+            Self::A => Some("A"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54000,12 +55783,206 @@ impl fmt::Display for AttachmentStoreOp {
         }
     }
 }
-impl fmt::Display for ImageTiling {
+impl fmt::Display for IndexType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::OPTIMAL => Some("OPTIMAL"),
+            Self::UINT16 => Some("UINT16"),
+            Self::UINT32 => Some("UINT32"),
+            Self::NONE_NV => Some("NONE_NV"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for SamplerAddressMode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::REPEAT => Some("REPEAT"),
+            Self::MIRRORED_REPEAT => Some("MIRRORED_REPEAT"),
+            Self::CLAMP_TO_EDGE => Some("CLAMP_TO_EDGE"),
+            Self::CLAMP_TO_BORDER => Some("CLAMP_TO_BORDER"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for PhysicalDeviceType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::OTHER => Some("OTHER"),
+            Self::INTEGRATED_GPU => Some("INTEGRATED_GPU"),
+            Self::DISCRETE_GPU => Some("DISCRETE_GPU"),
+            Self::VIRTUAL_GPU => Some("VIRTUAL_GPU"),
+            Self::CPU => Some("CPU"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for BlendOverlapEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::UNCORRELATED => Some("UNCORRELATED"),
+            Self::DISJOINT => Some("DISJOINT"),
+            Self::CONJOINT => Some("CONJOINT"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for Filter {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::NEAREST => Some("NEAREST"),
             Self::LINEAR => Some("LINEAR"),
-            Self::DRM_FORMAT_MODIFIER_EXT => Some("DRM_FORMAT_MODIFIER_EXT"),
+            Self::CUBIC_IMG => Some("CUBIC_IMG"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for DebugUtilsMessageTypeFlagsEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (DebugUtilsMessageTypeFlagsEXT::GENERAL.0, "GENERAL"),
+            (DebugUtilsMessageTypeFlagsEXT::VALIDATION.0, "VALIDATION"),
+            (DebugUtilsMessageTypeFlagsEXT::PERFORMANCE.0, "PERFORMANCE"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for QueryResultFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (QueryResultFlags::TYPE_64.0, "TYPE_64"),
+            (QueryResultFlags::WAIT.0, "WAIT"),
+            (QueryResultFlags::WITH_AVAILABILITY.0, "WITH_AVAILABILITY"),
+            (QueryResultFlags::PARTIAL.0, "PARTIAL"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for CoarseSampleOrderTypeNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::DEFAULT => Some("DEFAULT"),
+            Self::CUSTOM => Some("CUSTOM"),
+            Self::PIXEL_MAJOR => Some("PIXEL_MAJOR"),
+            Self::SAMPLE_MAJOR => Some("SAMPLE_MAJOR"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for LogicOp {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::CLEAR => Some("CLEAR"),
+            Self::AND => Some("AND"),
+            Self::AND_REVERSE => Some("AND_REVERSE"),
+            Self::COPY => Some("COPY"),
+            Self::AND_INVERTED => Some("AND_INVERTED"),
+            Self::NO_OP => Some("NO_OP"),
+            Self::XOR => Some("XOR"),
+            Self::OR => Some("OR"),
+            Self::NOR => Some("NOR"),
+            Self::EQUIVALENT => Some("EQUIVALENT"),
+            Self::INVERT => Some("INVERT"),
+            Self::OR_REVERSE => Some("OR_REVERSE"),
+            Self::COPY_INVERTED => Some("COPY_INVERTED"),
+            Self::OR_INVERTED => Some("OR_INVERTED"),
+            Self::NAND => Some("NAND"),
+            Self::SET => Some("SET"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for SamplerReductionModeEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::WEIGHTED_AVERAGE => Some("WEIGHTED_AVERAGE"),
+            Self::MIN => Some("MIN"),
+            Self::MAX => Some("MAX"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for VertexInputRate {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::VERTEX => Some("VERTEX"),
+            Self::INSTANCE => Some("INSTANCE"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for PipelineCreateFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                PipelineCreateFlags::DISABLE_OPTIMIZATION.0,
+                "DISABLE_OPTIMIZATION",
+            ),
+            (
+                PipelineCreateFlags::ALLOW_DERIVATIVES.0,
+                "ALLOW_DERIVATIVES",
+            ),
+            (PipelineCreateFlags::DERIVATIVE.0, "DERIVATIVE"),
+            (PipelineCreateFlags::DEFER_COMPILE_NV.0, "DEFER_COMPILE_NV"),
+            (
+                PipelineCreateFlags::VIEW_INDEX_FROM_DEVICE_INDEX.0,
+                "VIEW_INDEX_FROM_DEVICE_INDEX",
+            ),
+            (PipelineCreateFlags::DISPATCH_BASE.0, "DISPATCH_BASE"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for MemoryOverallocationBehaviorAMD {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::DEFAULT => Some("DEFAULT"),
+            Self::ALLOWED => Some("ALLOWED"),
+            Self::DISALLOWED => Some("DISALLOWED"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54042,19 +56019,18 @@ impl fmt::Display for DynamicState {
         }
     }
 }
-impl fmt::Display for MemoryAllocateFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(MemoryAllocateFlags::DEVICE_MASK.0, "DEVICE_MASK")];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for QueueGlobalPriorityEXT {
+impl fmt::Display for DriverIdKHR {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::LOW => Some("LOW"),
-            Self::MEDIUM => Some("MEDIUM"),
-            Self::HIGH => Some("HIGH"),
-            Self::REALTIME => Some("REALTIME"),
+            Self::AMD_PROPRIETARY => Some("AMD_PROPRIETARY"),
+            Self::AMD_OPEN_SOURCE => Some("AMD_OPEN_SOURCE"),
+            Self::MESA_RADV => Some("MESA_RADV"),
+            Self::NVIDIA_PROPRIETARY => Some("NVIDIA_PROPRIETARY"),
+            Self::INTEL_PROPRIETARY_WINDOWS => Some("INTEL_PROPRIETARY_WINDOWS"),
+            Self::INTEL_OPEN_SOURCE_MESA => Some("INTEL_OPEN_SOURCE_MESA"),
+            Self::IMAGINATION_PROPRIETARY => Some("IMAGINATION_PROPRIETARY"),
+            Self::QUALCOMM_PROPRIETARY => Some("QUALCOMM_PROPRIETARY"),
+            Self::ARM_PROPRIETARY => Some("ARM_PROPRIETARY"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54064,10 +56040,305 @@ impl fmt::Display for QueueGlobalPriorityEXT {
         }
     }
 }
-impl fmt::Display for AttachmentDescriptionFlags {
+impl fmt::Display for InternalAllocationType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[(AttachmentDescriptionFlags::MAY_ALIAS.0, "MAY_ALIAS")];
+        let name = match *self {
+            Self::EXECUTABLE => Some("EXECUTABLE"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for PipelineCacheHeaderVersion {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::ONE => Some("ONE"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for MemoryHeapFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (MemoryHeapFlags::DEVICE_LOCAL.0, "DEVICE_LOCAL"),
+            (MemoryHeapFlags::MULTI_INSTANCE.0, "MULTI_INSTANCE"),
+        ];
         display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for ImageAspectFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (ImageAspectFlags::COLOR.0, "COLOR"),
+            (ImageAspectFlags::DEPTH.0, "DEPTH"),
+            (ImageAspectFlags::STENCIL.0, "STENCIL"),
+            (ImageAspectFlags::METADATA.0, "METADATA"),
+            (ImageAspectFlags::MEMORY_PLANE_0_EXT.0, "MEMORY_PLANE_0_EXT"),
+            (ImageAspectFlags::MEMORY_PLANE_1_EXT.0, "MEMORY_PLANE_1_EXT"),
+            (ImageAspectFlags::MEMORY_PLANE_2_EXT.0, "MEMORY_PLANE_2_EXT"),
+            (ImageAspectFlags::MEMORY_PLANE_3_EXT.0, "MEMORY_PLANE_3_EXT"),
+            (ImageAspectFlags::PLANE_0.0, "PLANE_0"),
+            (ImageAspectFlags::PLANE_1.0, "PLANE_1"),
+            (ImageAspectFlags::PLANE_2.0, "PLANE_2"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for QueueFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (QueueFlags::GRAPHICS.0, "GRAPHICS"),
+            (QueueFlags::COMPUTE.0, "COMPUTE"),
+            (QueueFlags::TRANSFER.0, "TRANSFER"),
+            (QueueFlags::SPARSE_BINDING.0, "SPARSE_BINDING"),
+            (QueueFlags::PROTECTED.0, "PROTECTED"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for MemoryAllocateFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[(MemoryAllocateFlags::DEVICE_MASK.0, "DEVICE_MASK")];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for CommandBufferLevel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::PRIMARY => Some("PRIMARY"),
+            Self::SECONDARY => Some("SECONDARY"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ConditionalRenderingFlagsEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[(ConditionalRenderingFlagsEXT::INVERTED.0, "INVERTED")];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for DeviceQueueCreateFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[(DeviceQueueCreateFlags::PROTECTED.0, "PROTECTED")];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for ObjectEntryUsageFlagsNVX {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (ObjectEntryUsageFlagsNVX::GRAPHICS.0, "GRAPHICS"),
+            (ObjectEntryUsageFlagsNVX::COMPUTE.0, "COMPUTE"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for TessellationDomainOrigin {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::UPPER_LEFT => Some("UPPER_LEFT"),
+            Self::LOWER_LEFT => Some("LOWER_LEFT"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for CoverageModulationModeNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::NONE => Some("NONE"),
+            Self::RGB => Some("RGB"),
+            Self::ALPHA => Some("ALPHA"),
+            Self::RGBA => Some("RGBA"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for QueryType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::OCCLUSION => Some("OCCLUSION"),
+            Self::PIPELINE_STATISTICS => Some("PIPELINE_STATISTICS"),
+            Self::TIMESTAMP => Some("TIMESTAMP"),
+            Self::TRANSFORM_FEEDBACK_STREAM_EXT => Some("TRANSFORM_FEEDBACK_STREAM_EXT"),
+            Self::ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV => {
+                Some("ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV")
+            }
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for GeometryInstanceFlagsNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                GeometryInstanceFlagsNV::TRIANGLE_CULL_DISABLE.0,
+                "TRIANGLE_CULL_DISABLE",
+            ),
+            (
+                GeometryInstanceFlagsNV::TRIANGLE_FRONT_COUNTERCLOCKWISE.0,
+                "TRIANGLE_FRONT_COUNTERCLOCKWISE",
+            ),
+            (GeometryInstanceFlagsNV::FORCE_OPAQUE.0, "FORCE_OPAQUE"),
+            (
+                GeometryInstanceFlagsNV::FORCE_NO_OPAQUE.0,
+                "FORCE_NO_OPAQUE",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for DiscardRectangleModeEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::INCLUSIVE => Some("INCLUSIVE"),
+            Self::EXCLUSIVE => Some("EXCLUSIVE"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ChromaLocation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::COSITED_EVEN => Some("COSITED_EVEN"),
+            Self::MIDPOINT => Some("MIDPOINT"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for PolygonMode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::FILL => Some("FILL"),
+            Self::LINE => Some("LINE"),
+            Self::POINT => Some("POINT"),
+            Self::FILL_RECTANGLE_NV => Some("FILL_RECTANGLE_NV"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for DebugReportObjectTypeEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::UNKNOWN => Some("UNKNOWN"),
+            Self::INSTANCE => Some("INSTANCE"),
+            Self::PHYSICAL_DEVICE => Some("PHYSICAL_DEVICE"),
+            Self::DEVICE => Some("DEVICE"),
+            Self::QUEUE => Some("QUEUE"),
+            Self::SEMAPHORE => Some("SEMAPHORE"),
+            Self::COMMAND_BUFFER => Some("COMMAND_BUFFER"),
+            Self::FENCE => Some("FENCE"),
+            Self::DEVICE_MEMORY => Some("DEVICE_MEMORY"),
+            Self::BUFFER => Some("BUFFER"),
+            Self::IMAGE => Some("IMAGE"),
+            Self::EVENT => Some("EVENT"),
+            Self::QUERY_POOL => Some("QUERY_POOL"),
+            Self::BUFFER_VIEW => Some("BUFFER_VIEW"),
+            Self::IMAGE_VIEW => Some("IMAGE_VIEW"),
+            Self::SHADER_MODULE => Some("SHADER_MODULE"),
+            Self::PIPELINE_CACHE => Some("PIPELINE_CACHE"),
+            Self::PIPELINE_LAYOUT => Some("PIPELINE_LAYOUT"),
+            Self::RENDER_PASS => Some("RENDER_PASS"),
+            Self::PIPELINE => Some("PIPELINE"),
+            Self::DESCRIPTOR_SET_LAYOUT => Some("DESCRIPTOR_SET_LAYOUT"),
+            Self::SAMPLER => Some("SAMPLER"),
+            Self::DESCRIPTOR_POOL => Some("DESCRIPTOR_POOL"),
+            Self::DESCRIPTOR_SET => Some("DESCRIPTOR_SET"),
+            Self::FRAMEBUFFER => Some("FRAMEBUFFER"),
+            Self::COMMAND_POOL => Some("COMMAND_POOL"),
+            Self::SURFACE_KHR => Some("SURFACE_KHR"),
+            Self::SWAPCHAIN_KHR => Some("SWAPCHAIN_KHR"),
+            Self::DEBUG_REPORT_CALLBACK => Some("DEBUG_REPORT_CALLBACK"),
+            Self::DISPLAY_KHR => Some("DISPLAY_KHR"),
+            Self::DISPLAY_MODE_KHR => Some("DISPLAY_MODE_KHR"),
+            Self::OBJECT_TABLE_NVX => Some("OBJECT_TABLE_NVX"),
+            Self::INDIRECT_COMMANDS_LAYOUT_NVX => Some("INDIRECT_COMMANDS_LAYOUT_NVX"),
+            Self::VALIDATION_CACHE => Some("VALIDATION_CACHE"),
+            Self::SAMPLER_YCBCR_CONVERSION => Some("SAMPLER_YCBCR_CONVERSION"),
+            Self::DESCRIPTOR_UPDATE_TEMPLATE => Some("DESCRIPTOR_UPDATE_TEMPLATE"),
+            Self::ACCELERATION_STRUCTURE_NV => Some("ACCELERATION_STRUCTURE_NV"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ExternalMemoryFeatureFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                ExternalMemoryFeatureFlags::EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY.0,
+                "EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY",
+            ),
+            (
+                ExternalMemoryFeatureFlags::EXTERNAL_MEMORY_FEATURE_EXPORTABLE.0,
+                "EXTERNAL_MEMORY_FEATURE_EXPORTABLE",
+            ),
+            (
+                ExternalMemoryFeatureFlags::EXTERNAL_MEMORY_FEATURE_IMPORTABLE.0,
+                "EXTERNAL_MEMORY_FEATURE_IMPORTABLE",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for FrontFace {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::COUNTER_CLOCKWISE => Some("COUNTER_CLOCKWISE"),
+            Self::CLOCKWISE => Some("CLOCKWISE"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
     }
 }
 impl fmt::Display for CompareOp {
@@ -54081,6 +56352,314 @@ impl fmt::Display for CompareOp {
             Self::NOT_EQUAL => Some("NOT_EQUAL"),
             Self::GREATER_OR_EQUAL => Some("GREATER_OR_EQUAL"),
             Self::ALWAYS => Some("ALWAYS"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ColorComponentFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (ColorComponentFlags::R.0, "R"),
+            (ColorComponentFlags::G.0, "G"),
+            (ColorComponentFlags::B.0, "B"),
+            (ColorComponentFlags::A.0, "A"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for ExternalMemoryHandleTypeFlagsNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                ExternalMemoryHandleTypeFlagsNV::EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_NV.0,
+                "EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_NV",
+            ),
+            (
+                ExternalMemoryHandleTypeFlagsNV::EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_NV.0,
+                "EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT_NV",
+            ),
+            (
+                ExternalMemoryHandleTypeFlagsNV::EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_IMAGE_NV.0,
+                "EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_IMAGE_NV",
+            ),
+            (
+                ExternalMemoryHandleTypeFlagsNV::EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_IMAGE_KMT_NV.0,
+                "EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_IMAGE_KMT_NV",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for DisplayPowerStateEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::OFF => Some("OFF"),
+            Self::SUSPEND => Some("SUSPEND"),
+            Self::ON => Some("ON"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for SubpassDescriptionFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                SubpassDescriptionFlags::PER_VIEW_ATTRIBUTES_NVX.0,
+                "PER_VIEW_ATTRIBUTES_NVX",
+            ),
+            (
+                SubpassDescriptionFlags::PER_VIEW_POSITION_X_ONLY_NVX.0,
+                "PER_VIEW_POSITION_X_ONLY_NVX",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for IndirectCommandsLayoutUsageFlagsNVX {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                IndirectCommandsLayoutUsageFlagsNVX::UNORDERED_SEQUENCES.0,
+                "UNORDERED_SEQUENCES",
+            ),
+            (
+                IndirectCommandsLayoutUsageFlagsNVX::SPARSE_SEQUENCES.0,
+                "SPARSE_SEQUENCES",
+            ),
+            (
+                IndirectCommandsLayoutUsageFlagsNVX::EMPTY_EXECUTIONS.0,
+                "EMPTY_EXECUTIONS",
+            ),
+            (
+                IndirectCommandsLayoutUsageFlagsNVX::INDEXED_SEQUENCES.0,
+                "INDEXED_SEQUENCES",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for DeviceEventTypeEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::DISPLAY_HOTPLUG => Some("DISPLAY_HOTPLUG"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for DeviceGroupPresentModeFlagsKHR {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (DeviceGroupPresentModeFlagsKHR::LOCAL.0, "LOCAL"),
+            (DeviceGroupPresentModeFlagsKHR::REMOTE.0, "REMOTE"),
+            (DeviceGroupPresentModeFlagsKHR::SUM.0, "SUM"),
+            (
+                DeviceGroupPresentModeFlagsKHR::LOCAL_MULTI_DEVICE.0,
+                "LOCAL_MULTI_DEVICE",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for BufferCreateFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (BufferCreateFlags::SPARSE_BINDING.0, "SPARSE_BINDING"),
+            (BufferCreateFlags::SPARSE_RESIDENCY.0, "SPARSE_RESIDENCY"),
+            (BufferCreateFlags::SPARSE_ALIASED.0, "SPARSE_ALIASED"),
+            (BufferCreateFlags::PROTECTED.0, "PROTECTED"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for SamplerYcbcrRange {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::ITU_FULL => Some("ITU_FULL"),
+            Self::ITU_NARROW => Some("ITU_NARROW"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for GeometryTypeNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::TRIANGLES => Some("TRIANGLES"),
+            Self::AABBS => Some("AABBS"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for BuildAccelerationStructureFlagsNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                BuildAccelerationStructureFlagsNV::ALLOW_UPDATE.0,
+                "ALLOW_UPDATE",
+            ),
+            (
+                BuildAccelerationStructureFlagsNV::ALLOW_COMPACTION.0,
+                "ALLOW_COMPACTION",
+            ),
+            (
+                BuildAccelerationStructureFlagsNV::PREFER_FAST_TRACE.0,
+                "PREFER_FAST_TRACE",
+            ),
+            (
+                BuildAccelerationStructureFlagsNV::PREFER_FAST_BUILD.0,
+                "PREFER_FAST_BUILD",
+            ),
+            (
+                BuildAccelerationStructureFlagsNV::LOW_MEMORY.0,
+                "LOW_MEMORY",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for ConservativeRasterizationModeEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::DISABLED => Some("DISABLED"),
+            Self::OVERESTIMATE => Some("OVERESTIMATE"),
+            Self::UNDERESTIMATE => Some("UNDERESTIMATE"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for AttachmentLoadOp {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::LOAD => Some("LOAD"),
+            Self::CLEAR => Some("CLEAR"),
+            Self::DONT_CARE => Some("DONT_CARE"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for SubgroupFeatureFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (SubgroupFeatureFlags::BASIC.0, "BASIC"),
+            (SubgroupFeatureFlags::VOTE.0, "VOTE"),
+            (SubgroupFeatureFlags::ARITHMETIC.0, "ARITHMETIC"),
+            (SubgroupFeatureFlags::BALLOT.0, "BALLOT"),
+            (SubgroupFeatureFlags::SHUFFLE.0, "SHUFFLE"),
+            (SubgroupFeatureFlags::SHUFFLE_RELATIVE.0, "SHUFFLE_RELATIVE"),
+            (SubgroupFeatureFlags::CLUSTERED.0, "CLUSTERED"),
+            (SubgroupFeatureFlags::QUAD.0, "QUAD"),
+            (SubgroupFeatureFlags::PARTITIONED_NV.0, "PARTITIONED_NV"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for DisplayPlaneAlphaFlagsKHR {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (DisplayPlaneAlphaFlagsKHR::OPAQUE.0, "OPAQUE"),
+            (DisplayPlaneAlphaFlagsKHR::GLOBAL.0, "GLOBAL"),
+            (DisplayPlaneAlphaFlagsKHR::PER_PIXEL.0, "PER_PIXEL"),
+            (
+                DisplayPlaneAlphaFlagsKHR::PER_PIXEL_PREMULTIPLIED.0,
+                "PER_PIXEL_PREMULTIPLIED",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for DescriptorUpdateTemplateType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::DESCRIPTOR_SET => Some("DESCRIPTOR_SET"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for DescriptorType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::SAMPLER => Some("SAMPLER"),
+            Self::COMBINED_IMAGE_SAMPLER => Some("COMBINED_IMAGE_SAMPLER"),
+            Self::SAMPLED_IMAGE => Some("SAMPLED_IMAGE"),
+            Self::STORAGE_IMAGE => Some("STORAGE_IMAGE"),
+            Self::UNIFORM_TEXEL_BUFFER => Some("UNIFORM_TEXEL_BUFFER"),
+            Self::STORAGE_TEXEL_BUFFER => Some("STORAGE_TEXEL_BUFFER"),
+            Self::UNIFORM_BUFFER => Some("UNIFORM_BUFFER"),
+            Self::STORAGE_BUFFER => Some("STORAGE_BUFFER"),
+            Self::UNIFORM_BUFFER_DYNAMIC => Some("UNIFORM_BUFFER_DYNAMIC"),
+            Self::STORAGE_BUFFER_DYNAMIC => Some("STORAGE_BUFFER_DYNAMIC"),
+            Self::INPUT_ATTACHMENT => Some("INPUT_ATTACHMENT"),
+            Self::INLINE_UNIFORM_BLOCK_EXT => Some("INLINE_UNIFORM_BLOCK_EXT"),
+            Self::ACCELERATION_STRUCTURE_NV => Some("ACCELERATION_STRUCTURE_NV"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ExternalFenceFeatureFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                ExternalFenceFeatureFlags::EXTERNAL_FENCE_FEATURE_EXPORTABLE.0,
+                "EXTERNAL_FENCE_FEATURE_EXPORTABLE",
+            ),
+            (
+                ExternalFenceFeatureFlags::EXTERNAL_FENCE_FEATURE_IMPORTABLE.0,
+                "EXTERNAL_FENCE_FEATURE_IMPORTABLE",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for VendorId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::VIV => Some("VIV"),
+            Self::VSI => Some("VSI"),
+            Self::KAZAN => Some("KAZAN"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54156,43 +56735,40 @@ impl fmt::Display for PipelineStageFlags {
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for SubpassDescriptionFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                SubpassDescriptionFlags::PER_VIEW_ATTRIBUTES_NVX.0,
-                "PER_VIEW_ATTRIBUTES_NVX",
-            ),
-            (
-                SubpassDescriptionFlags::PER_VIEW_POSITION_X_ONLY_NVX.0,
-                "PER_VIEW_POSITION_X_ONLY_NVX",
-            ),
-        ];
-        display_flags(f, KNOWN, self.0)
-    }
-}
-impl fmt::Display for BlendFactor {
+impl fmt::Display for ImageLayout {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::ZERO => Some("ZERO"),
+            Self::UNDEFINED => Some("UNDEFINED"),
+            Self::GENERAL => Some("GENERAL"),
+            Self::COLOR_ATTACHMENT_OPTIMAL => Some("COLOR_ATTACHMENT_OPTIMAL"),
+            Self::DEPTH_STENCIL_ATTACHMENT_OPTIMAL => Some("DEPTH_STENCIL_ATTACHMENT_OPTIMAL"),
+            Self::DEPTH_STENCIL_READ_ONLY_OPTIMAL => Some("DEPTH_STENCIL_READ_ONLY_OPTIMAL"),
+            Self::SHADER_READ_ONLY_OPTIMAL => Some("SHADER_READ_ONLY_OPTIMAL"),
+            Self::TRANSFER_SRC_OPTIMAL => Some("TRANSFER_SRC_OPTIMAL"),
+            Self::TRANSFER_DST_OPTIMAL => Some("TRANSFER_DST_OPTIMAL"),
+            Self::PREINITIALIZED => Some("PREINITIALIZED"),
+            Self::PRESENT_SRC_KHR => Some("PRESENT_SRC_KHR"),
+            Self::SHARED_PRESENT_KHR => Some("SHARED_PRESENT_KHR"),
+            Self::SHADING_RATE_OPTIMAL_NV => Some("SHADING_RATE_OPTIMAL_NV"),
+            Self::DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL => {
+                Some("DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL")
+            }
+            Self::DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL => {
+                Some("DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL")
+            }
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ValidationCacheHeaderVersionEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
             Self::ONE => Some("ONE"),
-            Self::SRC_COLOR => Some("SRC_COLOR"),
-            Self::ONE_MINUS_SRC_COLOR => Some("ONE_MINUS_SRC_COLOR"),
-            Self::DST_COLOR => Some("DST_COLOR"),
-            Self::ONE_MINUS_DST_COLOR => Some("ONE_MINUS_DST_COLOR"),
-            Self::SRC_ALPHA => Some("SRC_ALPHA"),
-            Self::ONE_MINUS_SRC_ALPHA => Some("ONE_MINUS_SRC_ALPHA"),
-            Self::DST_ALPHA => Some("DST_ALPHA"),
-            Self::ONE_MINUS_DST_ALPHA => Some("ONE_MINUS_DST_ALPHA"),
-            Self::CONSTANT_COLOR => Some("CONSTANT_COLOR"),
-            Self::ONE_MINUS_CONSTANT_COLOR => Some("ONE_MINUS_CONSTANT_COLOR"),
-            Self::CONSTANT_ALPHA => Some("CONSTANT_ALPHA"),
-            Self::ONE_MINUS_CONSTANT_ALPHA => Some("ONE_MINUS_CONSTANT_ALPHA"),
-            Self::SRC_ALPHA_SATURATE => Some("SRC_ALPHA_SATURATE"),
-            Self::SRC1_COLOR => Some("SRC1_COLOR"),
-            Self::ONE_MINUS_SRC1_COLOR => Some("ONE_MINUS_SRC1_COLOR"),
-            Self::SRC1_ALPHA => Some("SRC1_ALPHA"),
-            Self::ONE_MINUS_SRC1_ALPHA => Some("ONE_MINUS_SRC1_ALPHA"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54202,108 +56778,340 @@ impl fmt::Display for BlendFactor {
         }
     }
 }
-impl fmt::Display for ChromaLocation {
+impl fmt::Display for ExternalMemoryHandleTypeFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::COSITED_EVEN => Some("COSITED_EVEN"),
-            Self::MIDPOINT => Some("MIDPOINT"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
+        const KNOWN : & [ ( Flags , & str ) ] = & [ ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32 . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_KMT" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_KMT . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_KMT" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_HEAP" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_D3D12_RESOURCE" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_ANDROID . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_ANDROID" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION" ) , ( ExternalMemoryHandleTypeFlags :: EXTERNAL_MEMORY_HANDLE_TYPE_HOST_MAPPED_FOREIGN_MEMORY . 0 , "EXTERNAL_MEMORY_HANDLE_TYPE_HOST_MAPPED_FOREIGN_MEMORY" ) ] ;
+        display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for QueryResultFlags {
+impl fmt::Display for ShaderStageFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
-            (QueryResultFlags::TYPE_64.0, "TYPE_64"),
-            (QueryResultFlags::WAIT.0, "WAIT"),
-            (QueryResultFlags::WITH_AVAILABILITY.0, "WITH_AVAILABILITY"),
-            (QueryResultFlags::PARTIAL.0, "PARTIAL"),
+            (ShaderStageFlags::VERTEX.0, "VERTEX"),
+            (
+                ShaderStageFlags::TESSELLATION_CONTROL.0,
+                "TESSELLATION_CONTROL",
+            ),
+            (
+                ShaderStageFlags::TESSELLATION_EVALUATION.0,
+                "TESSELLATION_EVALUATION",
+            ),
+            (ShaderStageFlags::GEOMETRY.0, "GEOMETRY"),
+            (ShaderStageFlags::FRAGMENT.0, "FRAGMENT"),
+            (ShaderStageFlags::COMPUTE.0, "COMPUTE"),
+            (ShaderStageFlags::ALL_GRAPHICS.0, "ALL_GRAPHICS"),
+            (ShaderStageFlags::ALL.0, "ALL"),
+            (ShaderStageFlags::RAYGEN_NV.0, "RAYGEN_NV"),
+            (ShaderStageFlags::ANY_HIT_NV.0, "ANY_HIT_NV"),
+            (ShaderStageFlags::CLOSEST_HIT_NV.0, "CLOSEST_HIT_NV"),
+            (ShaderStageFlags::MISS_NV.0, "MISS_NV"),
+            (ShaderStageFlags::INTERSECTION_NV.0, "INTERSECTION_NV"),
+            (ShaderStageFlags::CALLABLE_NV.0, "CALLABLE_NV"),
+            (ShaderStageFlags::TASK_NV.0, "TASK_NV"),
+            (ShaderStageFlags::MESH_NV.0, "MESH_NV"),
         ];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for GeometryInstanceFlagsNV {
+impl fmt::Display for SemaphoreImportFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (
-                GeometryInstanceFlagsNV::TRIANGLE_CULL_DISABLE.0,
-                "TRIANGLE_CULL_DISABLE",
-            ),
-            (
-                GeometryInstanceFlagsNV::TRIANGLE_FRONT_COUNTERCLOCKWISE.0,
-                "TRIANGLE_FRONT_COUNTERCLOCKWISE",
-            ),
-            (GeometryInstanceFlagsNV::FORCE_OPAQUE.0, "FORCE_OPAQUE"),
-            (
-                GeometryInstanceFlagsNV::FORCE_NO_OPAQUE.0,
-                "FORCE_NO_OPAQUE",
-            ),
-        ];
+        const KNOWN: &[(Flags, &str)] = &[(SemaphoreImportFlags::TEMPORARY.0, "TEMPORARY")];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for SamplerAddressMode {
+impl fmt::Display for SurfaceCounterFlagsEXT {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            Self::REPEAT => Some("REPEAT"),
-            Self::MIRRORED_REPEAT => Some("MIRRORED_REPEAT"),
-            Self::CLAMP_TO_EDGE => Some("CLAMP_TO_EDGE"),
-            Self::CLAMP_TO_BORDER => Some("CLAMP_TO_BORDER"),
-            _ => None,
-        };
-        if let Some(x) = name {
-            f.write_str(x)
-        } else {
-            write!(f, "{}", self.0)
-        }
-    }
-}
-impl fmt::Display for MemoryHeapFlags {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN: &[(Flags, &str)] = &[
-            (MemoryHeapFlags::DEVICE_LOCAL.0, "DEVICE_LOCAL"),
-            (MemoryHeapFlags::MULTI_INSTANCE.0, "MULTI_INSTANCE"),
-        ];
+        const KNOWN: &[(Flags, &str)] = &[(SurfaceCounterFlagsEXT::VBLANK.0, "VBLANK")];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for DeviceGroupPresentModeFlagsKHR {
+impl fmt::Display for SparseMemoryBindFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[(SparseMemoryBindFlags::METADATA.0, "METADATA")];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for DescriptorBindingFlagsEXT {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
-            (DeviceGroupPresentModeFlagsKHR::LOCAL.0, "LOCAL"),
-            (DeviceGroupPresentModeFlagsKHR::REMOTE.0, "REMOTE"),
-            (DeviceGroupPresentModeFlagsKHR::SUM.0, "SUM"),
             (
-                DeviceGroupPresentModeFlagsKHR::LOCAL_MULTI_DEVICE.0,
-                "LOCAL_MULTI_DEVICE",
+                DescriptorBindingFlagsEXT::UPDATE_AFTER_BIND.0,
+                "UPDATE_AFTER_BIND",
+            ),
+            (
+                DescriptorBindingFlagsEXT::UPDATE_UNUSED_WHILE_PENDING.0,
+                "UPDATE_UNUSED_WHILE_PENDING",
+            ),
+            (
+                DescriptorBindingFlagsEXT::PARTIALLY_BOUND.0,
+                "PARTIALLY_BOUND",
+            ),
+            (
+                DescriptorBindingFlagsEXT::VARIABLE_DESCRIPTOR_COUNT.0,
+                "VARIABLE_DESCRIPTOR_COUNT",
             ),
         ];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for ColorSpaceKHR {
+impl fmt::Display for Format {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::SRGB_NONLINEAR => Some("SRGB_NONLINEAR"),
-            Self::DISPLAY_P3_NONLINEAR_EXT => Some("DISPLAY_P3_NONLINEAR_EXT"),
-            Self::EXTENDED_SRGB_LINEAR_EXT => Some("EXTENDED_SRGB_LINEAR_EXT"),
-            Self::DCI_P3_LINEAR_EXT => Some("DCI_P3_LINEAR_EXT"),
-            Self::DCI_P3_NONLINEAR_EXT => Some("DCI_P3_NONLINEAR_EXT"),
-            Self::BT709_LINEAR_EXT => Some("BT709_LINEAR_EXT"),
-            Self::BT709_NONLINEAR_EXT => Some("BT709_NONLINEAR_EXT"),
-            Self::BT2020_LINEAR_EXT => Some("BT2020_LINEAR_EXT"),
-            Self::HDR10_ST2084_EXT => Some("HDR10_ST2084_EXT"),
-            Self::DOLBYVISION_EXT => Some("DOLBYVISION_EXT"),
-            Self::HDR10_HLG_EXT => Some("HDR10_HLG_EXT"),
-            Self::ADOBERGB_LINEAR_EXT => Some("ADOBERGB_LINEAR_EXT"),
-            Self::ADOBERGB_NONLINEAR_EXT => Some("ADOBERGB_NONLINEAR_EXT"),
-            Self::PASS_THROUGH_EXT => Some("PASS_THROUGH_EXT"),
-            Self::EXTENDED_SRGB_NONLINEAR_EXT => Some("EXTENDED_SRGB_NONLINEAR_EXT"),
+            Self::UNDEFINED => Some("UNDEFINED"),
+            Self::R4G4_UNORM_PACK8 => Some("R4G4_UNORM_PACK8"),
+            Self::R4G4B4A4_UNORM_PACK16 => Some("R4G4B4A4_UNORM_PACK16"),
+            Self::B4G4R4A4_UNORM_PACK16 => Some("B4G4R4A4_UNORM_PACK16"),
+            Self::R5G6B5_UNORM_PACK16 => Some("R5G6B5_UNORM_PACK16"),
+            Self::B5G6R5_UNORM_PACK16 => Some("B5G6R5_UNORM_PACK16"),
+            Self::R5G5B5A1_UNORM_PACK16 => Some("R5G5B5A1_UNORM_PACK16"),
+            Self::B5G5R5A1_UNORM_PACK16 => Some("B5G5R5A1_UNORM_PACK16"),
+            Self::A1R5G5B5_UNORM_PACK16 => Some("A1R5G5B5_UNORM_PACK16"),
+            Self::R8_UNORM => Some("R8_UNORM"),
+            Self::R8_SNORM => Some("R8_SNORM"),
+            Self::R8_USCALED => Some("R8_USCALED"),
+            Self::R8_SSCALED => Some("R8_SSCALED"),
+            Self::R8_UINT => Some("R8_UINT"),
+            Self::R8_SINT => Some("R8_SINT"),
+            Self::R8_SRGB => Some("R8_SRGB"),
+            Self::R8G8_UNORM => Some("R8G8_UNORM"),
+            Self::R8G8_SNORM => Some("R8G8_SNORM"),
+            Self::R8G8_USCALED => Some("R8G8_USCALED"),
+            Self::R8G8_SSCALED => Some("R8G8_SSCALED"),
+            Self::R8G8_UINT => Some("R8G8_UINT"),
+            Self::R8G8_SINT => Some("R8G8_SINT"),
+            Self::R8G8_SRGB => Some("R8G8_SRGB"),
+            Self::R8G8B8_UNORM => Some("R8G8B8_UNORM"),
+            Self::R8G8B8_SNORM => Some("R8G8B8_SNORM"),
+            Self::R8G8B8_USCALED => Some("R8G8B8_USCALED"),
+            Self::R8G8B8_SSCALED => Some("R8G8B8_SSCALED"),
+            Self::R8G8B8_UINT => Some("R8G8B8_UINT"),
+            Self::R8G8B8_SINT => Some("R8G8B8_SINT"),
+            Self::R8G8B8_SRGB => Some("R8G8B8_SRGB"),
+            Self::B8G8R8_UNORM => Some("B8G8R8_UNORM"),
+            Self::B8G8R8_SNORM => Some("B8G8R8_SNORM"),
+            Self::B8G8R8_USCALED => Some("B8G8R8_USCALED"),
+            Self::B8G8R8_SSCALED => Some("B8G8R8_SSCALED"),
+            Self::B8G8R8_UINT => Some("B8G8R8_UINT"),
+            Self::B8G8R8_SINT => Some("B8G8R8_SINT"),
+            Self::B8G8R8_SRGB => Some("B8G8R8_SRGB"),
+            Self::R8G8B8A8_UNORM => Some("R8G8B8A8_UNORM"),
+            Self::R8G8B8A8_SNORM => Some("R8G8B8A8_SNORM"),
+            Self::R8G8B8A8_USCALED => Some("R8G8B8A8_USCALED"),
+            Self::R8G8B8A8_SSCALED => Some("R8G8B8A8_SSCALED"),
+            Self::R8G8B8A8_UINT => Some("R8G8B8A8_UINT"),
+            Self::R8G8B8A8_SINT => Some("R8G8B8A8_SINT"),
+            Self::R8G8B8A8_SRGB => Some("R8G8B8A8_SRGB"),
+            Self::B8G8R8A8_UNORM => Some("B8G8R8A8_UNORM"),
+            Self::B8G8R8A8_SNORM => Some("B8G8R8A8_SNORM"),
+            Self::B8G8R8A8_USCALED => Some("B8G8R8A8_USCALED"),
+            Self::B8G8R8A8_SSCALED => Some("B8G8R8A8_SSCALED"),
+            Self::B8G8R8A8_UINT => Some("B8G8R8A8_UINT"),
+            Self::B8G8R8A8_SINT => Some("B8G8R8A8_SINT"),
+            Self::B8G8R8A8_SRGB => Some("B8G8R8A8_SRGB"),
+            Self::A8B8G8R8_UNORM_PACK32 => Some("A8B8G8R8_UNORM_PACK32"),
+            Self::A8B8G8R8_SNORM_PACK32 => Some("A8B8G8R8_SNORM_PACK32"),
+            Self::A8B8G8R8_USCALED_PACK32 => Some("A8B8G8R8_USCALED_PACK32"),
+            Self::A8B8G8R8_SSCALED_PACK32 => Some("A8B8G8R8_SSCALED_PACK32"),
+            Self::A8B8G8R8_UINT_PACK32 => Some("A8B8G8R8_UINT_PACK32"),
+            Self::A8B8G8R8_SINT_PACK32 => Some("A8B8G8R8_SINT_PACK32"),
+            Self::A8B8G8R8_SRGB_PACK32 => Some("A8B8G8R8_SRGB_PACK32"),
+            Self::A2R10G10B10_UNORM_PACK32 => Some("A2R10G10B10_UNORM_PACK32"),
+            Self::A2R10G10B10_SNORM_PACK32 => Some("A2R10G10B10_SNORM_PACK32"),
+            Self::A2R10G10B10_USCALED_PACK32 => Some("A2R10G10B10_USCALED_PACK32"),
+            Self::A2R10G10B10_SSCALED_PACK32 => Some("A2R10G10B10_SSCALED_PACK32"),
+            Self::A2R10G10B10_UINT_PACK32 => Some("A2R10G10B10_UINT_PACK32"),
+            Self::A2R10G10B10_SINT_PACK32 => Some("A2R10G10B10_SINT_PACK32"),
+            Self::A2B10G10R10_UNORM_PACK32 => Some("A2B10G10R10_UNORM_PACK32"),
+            Self::A2B10G10R10_SNORM_PACK32 => Some("A2B10G10R10_SNORM_PACK32"),
+            Self::A2B10G10R10_USCALED_PACK32 => Some("A2B10G10R10_USCALED_PACK32"),
+            Self::A2B10G10R10_SSCALED_PACK32 => Some("A2B10G10R10_SSCALED_PACK32"),
+            Self::A2B10G10R10_UINT_PACK32 => Some("A2B10G10R10_UINT_PACK32"),
+            Self::A2B10G10R10_SINT_PACK32 => Some("A2B10G10R10_SINT_PACK32"),
+            Self::R16_UNORM => Some("R16_UNORM"),
+            Self::R16_SNORM => Some("R16_SNORM"),
+            Self::R16_USCALED => Some("R16_USCALED"),
+            Self::R16_SSCALED => Some("R16_SSCALED"),
+            Self::R16_UINT => Some("R16_UINT"),
+            Self::R16_SINT => Some("R16_SINT"),
+            Self::R16_SFLOAT => Some("R16_SFLOAT"),
+            Self::R16G16_UNORM => Some("R16G16_UNORM"),
+            Self::R16G16_SNORM => Some("R16G16_SNORM"),
+            Self::R16G16_USCALED => Some("R16G16_USCALED"),
+            Self::R16G16_SSCALED => Some("R16G16_SSCALED"),
+            Self::R16G16_UINT => Some("R16G16_UINT"),
+            Self::R16G16_SINT => Some("R16G16_SINT"),
+            Self::R16G16_SFLOAT => Some("R16G16_SFLOAT"),
+            Self::R16G16B16_UNORM => Some("R16G16B16_UNORM"),
+            Self::R16G16B16_SNORM => Some("R16G16B16_SNORM"),
+            Self::R16G16B16_USCALED => Some("R16G16B16_USCALED"),
+            Self::R16G16B16_SSCALED => Some("R16G16B16_SSCALED"),
+            Self::R16G16B16_UINT => Some("R16G16B16_UINT"),
+            Self::R16G16B16_SINT => Some("R16G16B16_SINT"),
+            Self::R16G16B16_SFLOAT => Some("R16G16B16_SFLOAT"),
+            Self::R16G16B16A16_UNORM => Some("R16G16B16A16_UNORM"),
+            Self::R16G16B16A16_SNORM => Some("R16G16B16A16_SNORM"),
+            Self::R16G16B16A16_USCALED => Some("R16G16B16A16_USCALED"),
+            Self::R16G16B16A16_SSCALED => Some("R16G16B16A16_SSCALED"),
+            Self::R16G16B16A16_UINT => Some("R16G16B16A16_UINT"),
+            Self::R16G16B16A16_SINT => Some("R16G16B16A16_SINT"),
+            Self::R16G16B16A16_SFLOAT => Some("R16G16B16A16_SFLOAT"),
+            Self::R32_UINT => Some("R32_UINT"),
+            Self::R32_SINT => Some("R32_SINT"),
+            Self::R32_SFLOAT => Some("R32_SFLOAT"),
+            Self::R32G32_UINT => Some("R32G32_UINT"),
+            Self::R32G32_SINT => Some("R32G32_SINT"),
+            Self::R32G32_SFLOAT => Some("R32G32_SFLOAT"),
+            Self::R32G32B32_UINT => Some("R32G32B32_UINT"),
+            Self::R32G32B32_SINT => Some("R32G32B32_SINT"),
+            Self::R32G32B32_SFLOAT => Some("R32G32B32_SFLOAT"),
+            Self::R32G32B32A32_UINT => Some("R32G32B32A32_UINT"),
+            Self::R32G32B32A32_SINT => Some("R32G32B32A32_SINT"),
+            Self::R32G32B32A32_SFLOAT => Some("R32G32B32A32_SFLOAT"),
+            Self::R64_UINT => Some("R64_UINT"),
+            Self::R64_SINT => Some("R64_SINT"),
+            Self::R64_SFLOAT => Some("R64_SFLOAT"),
+            Self::R64G64_UINT => Some("R64G64_UINT"),
+            Self::R64G64_SINT => Some("R64G64_SINT"),
+            Self::R64G64_SFLOAT => Some("R64G64_SFLOAT"),
+            Self::R64G64B64_UINT => Some("R64G64B64_UINT"),
+            Self::R64G64B64_SINT => Some("R64G64B64_SINT"),
+            Self::R64G64B64_SFLOAT => Some("R64G64B64_SFLOAT"),
+            Self::R64G64B64A64_UINT => Some("R64G64B64A64_UINT"),
+            Self::R64G64B64A64_SINT => Some("R64G64B64A64_SINT"),
+            Self::R64G64B64A64_SFLOAT => Some("R64G64B64A64_SFLOAT"),
+            Self::B10G11R11_UFLOAT_PACK32 => Some("B10G11R11_UFLOAT_PACK32"),
+            Self::E5B9G9R9_UFLOAT_PACK32 => Some("E5B9G9R9_UFLOAT_PACK32"),
+            Self::D16_UNORM => Some("D16_UNORM"),
+            Self::X8_D24_UNORM_PACK32 => Some("X8_D24_UNORM_PACK32"),
+            Self::D32_SFLOAT => Some("D32_SFLOAT"),
+            Self::S8_UINT => Some("S8_UINT"),
+            Self::D16_UNORM_S8_UINT => Some("D16_UNORM_S8_UINT"),
+            Self::D24_UNORM_S8_UINT => Some("D24_UNORM_S8_UINT"),
+            Self::D32_SFLOAT_S8_UINT => Some("D32_SFLOAT_S8_UINT"),
+            Self::BC1_RGB_UNORM_BLOCK => Some("BC1_RGB_UNORM_BLOCK"),
+            Self::BC1_RGB_SRGB_BLOCK => Some("BC1_RGB_SRGB_BLOCK"),
+            Self::BC1_RGBA_UNORM_BLOCK => Some("BC1_RGBA_UNORM_BLOCK"),
+            Self::BC1_RGBA_SRGB_BLOCK => Some("BC1_RGBA_SRGB_BLOCK"),
+            Self::BC2_UNORM_BLOCK => Some("BC2_UNORM_BLOCK"),
+            Self::BC2_SRGB_BLOCK => Some("BC2_SRGB_BLOCK"),
+            Self::BC3_UNORM_BLOCK => Some("BC3_UNORM_BLOCK"),
+            Self::BC3_SRGB_BLOCK => Some("BC3_SRGB_BLOCK"),
+            Self::BC4_UNORM_BLOCK => Some("BC4_UNORM_BLOCK"),
+            Self::BC4_SNORM_BLOCK => Some("BC4_SNORM_BLOCK"),
+            Self::BC5_UNORM_BLOCK => Some("BC5_UNORM_BLOCK"),
+            Self::BC5_SNORM_BLOCK => Some("BC5_SNORM_BLOCK"),
+            Self::BC6H_UFLOAT_BLOCK => Some("BC6H_UFLOAT_BLOCK"),
+            Self::BC6H_SFLOAT_BLOCK => Some("BC6H_SFLOAT_BLOCK"),
+            Self::BC7_UNORM_BLOCK => Some("BC7_UNORM_BLOCK"),
+            Self::BC7_SRGB_BLOCK => Some("BC7_SRGB_BLOCK"),
+            Self::ETC2_R8G8B8_UNORM_BLOCK => Some("ETC2_R8G8B8_UNORM_BLOCK"),
+            Self::ETC2_R8G8B8_SRGB_BLOCK => Some("ETC2_R8G8B8_SRGB_BLOCK"),
+            Self::ETC2_R8G8B8A1_UNORM_BLOCK => Some("ETC2_R8G8B8A1_UNORM_BLOCK"),
+            Self::ETC2_R8G8B8A1_SRGB_BLOCK => Some("ETC2_R8G8B8A1_SRGB_BLOCK"),
+            Self::ETC2_R8G8B8A8_UNORM_BLOCK => Some("ETC2_R8G8B8A8_UNORM_BLOCK"),
+            Self::ETC2_R8G8B8A8_SRGB_BLOCK => Some("ETC2_R8G8B8A8_SRGB_BLOCK"),
+            Self::EAC_R11_UNORM_BLOCK => Some("EAC_R11_UNORM_BLOCK"),
+            Self::EAC_R11_SNORM_BLOCK => Some("EAC_R11_SNORM_BLOCK"),
+            Self::EAC_R11G11_UNORM_BLOCK => Some("EAC_R11G11_UNORM_BLOCK"),
+            Self::EAC_R11G11_SNORM_BLOCK => Some("EAC_R11G11_SNORM_BLOCK"),
+            Self::ASTC_4X4_UNORM_BLOCK => Some("ASTC_4X4_UNORM_BLOCK"),
+            Self::ASTC_4X4_SRGB_BLOCK => Some("ASTC_4X4_SRGB_BLOCK"),
+            Self::ASTC_5X4_UNORM_BLOCK => Some("ASTC_5X4_UNORM_BLOCK"),
+            Self::ASTC_5X4_SRGB_BLOCK => Some("ASTC_5X4_SRGB_BLOCK"),
+            Self::ASTC_5X5_UNORM_BLOCK => Some("ASTC_5X5_UNORM_BLOCK"),
+            Self::ASTC_5X5_SRGB_BLOCK => Some("ASTC_5X5_SRGB_BLOCK"),
+            Self::ASTC_6X5_UNORM_BLOCK => Some("ASTC_6X5_UNORM_BLOCK"),
+            Self::ASTC_6X5_SRGB_BLOCK => Some("ASTC_6X5_SRGB_BLOCK"),
+            Self::ASTC_6X6_UNORM_BLOCK => Some("ASTC_6X6_UNORM_BLOCK"),
+            Self::ASTC_6X6_SRGB_BLOCK => Some("ASTC_6X6_SRGB_BLOCK"),
+            Self::ASTC_8X5_UNORM_BLOCK => Some("ASTC_8X5_UNORM_BLOCK"),
+            Self::ASTC_8X5_SRGB_BLOCK => Some("ASTC_8X5_SRGB_BLOCK"),
+            Self::ASTC_8X6_UNORM_BLOCK => Some("ASTC_8X6_UNORM_BLOCK"),
+            Self::ASTC_8X6_SRGB_BLOCK => Some("ASTC_8X6_SRGB_BLOCK"),
+            Self::ASTC_8X8_UNORM_BLOCK => Some("ASTC_8X8_UNORM_BLOCK"),
+            Self::ASTC_8X8_SRGB_BLOCK => Some("ASTC_8X8_SRGB_BLOCK"),
+            Self::ASTC_10X5_UNORM_BLOCK => Some("ASTC_10X5_UNORM_BLOCK"),
+            Self::ASTC_10X5_SRGB_BLOCK => Some("ASTC_10X5_SRGB_BLOCK"),
+            Self::ASTC_10X6_UNORM_BLOCK => Some("ASTC_10X6_UNORM_BLOCK"),
+            Self::ASTC_10X6_SRGB_BLOCK => Some("ASTC_10X6_SRGB_BLOCK"),
+            Self::ASTC_10X8_UNORM_BLOCK => Some("ASTC_10X8_UNORM_BLOCK"),
+            Self::ASTC_10X8_SRGB_BLOCK => Some("ASTC_10X8_SRGB_BLOCK"),
+            Self::ASTC_10X10_UNORM_BLOCK => Some("ASTC_10X10_UNORM_BLOCK"),
+            Self::ASTC_10X10_SRGB_BLOCK => Some("ASTC_10X10_SRGB_BLOCK"),
+            Self::ASTC_12X10_UNORM_BLOCK => Some("ASTC_12X10_UNORM_BLOCK"),
+            Self::ASTC_12X10_SRGB_BLOCK => Some("ASTC_12X10_SRGB_BLOCK"),
+            Self::ASTC_12X12_UNORM_BLOCK => Some("ASTC_12X12_UNORM_BLOCK"),
+            Self::ASTC_12X12_SRGB_BLOCK => Some("ASTC_12X12_SRGB_BLOCK"),
+            Self::PVRTC1_2BPP_UNORM_BLOCK_IMG => Some("PVRTC1_2BPP_UNORM_BLOCK_IMG"),
+            Self::PVRTC1_4BPP_UNORM_BLOCK_IMG => Some("PVRTC1_4BPP_UNORM_BLOCK_IMG"),
+            Self::PVRTC2_2BPP_UNORM_BLOCK_IMG => Some("PVRTC2_2BPP_UNORM_BLOCK_IMG"),
+            Self::PVRTC2_4BPP_UNORM_BLOCK_IMG => Some("PVRTC2_4BPP_UNORM_BLOCK_IMG"),
+            Self::PVRTC1_2BPP_SRGB_BLOCK_IMG => Some("PVRTC1_2BPP_SRGB_BLOCK_IMG"),
+            Self::PVRTC1_4BPP_SRGB_BLOCK_IMG => Some("PVRTC1_4BPP_SRGB_BLOCK_IMG"),
+            Self::PVRTC2_2BPP_SRGB_BLOCK_IMG => Some("PVRTC2_2BPP_SRGB_BLOCK_IMG"),
+            Self::PVRTC2_4BPP_SRGB_BLOCK_IMG => Some("PVRTC2_4BPP_SRGB_BLOCK_IMG"),
+            Self::G8B8G8R8_422_UNORM => Some("G8B8G8R8_422_UNORM"),
+            Self::B8G8R8G8_422_UNORM => Some("B8G8R8G8_422_UNORM"),
+            Self::G8_B8_R8_3PLANE_420_UNORM => Some("G8_B8_R8_3PLANE_420_UNORM"),
+            Self::G8_B8R8_2PLANE_420_UNORM => Some("G8_B8R8_2PLANE_420_UNORM"),
+            Self::G8_B8_R8_3PLANE_422_UNORM => Some("G8_B8_R8_3PLANE_422_UNORM"),
+            Self::G8_B8R8_2PLANE_422_UNORM => Some("G8_B8R8_2PLANE_422_UNORM"),
+            Self::G8_B8_R8_3PLANE_444_UNORM => Some("G8_B8_R8_3PLANE_444_UNORM"),
+            Self::R10X6_UNORM_PACK16 => Some("R10X6_UNORM_PACK16"),
+            Self::R10X6G10X6_UNORM_2PACK16 => Some("R10X6G10X6_UNORM_2PACK16"),
+            Self::R10X6G10X6B10X6A10X6_UNORM_4PACK16 => Some("R10X6G10X6B10X6A10X6_UNORM_4PACK16"),
+            Self::G10X6B10X6G10X6R10X6_422_UNORM_4PACK16 => {
+                Some("G10X6B10X6G10X6R10X6_422_UNORM_4PACK16")
+            }
+            Self::B10X6G10X6R10X6G10X6_422_UNORM_4PACK16 => {
+                Some("B10X6G10X6R10X6G10X6_422_UNORM_4PACK16")
+            }
+            Self::G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16 => {
+                Some("G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16")
+            }
+            Self::G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16 => {
+                Some("G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16")
+            }
+            Self::G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16 => {
+                Some("G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16")
+            }
+            Self::G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16 => {
+                Some("G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16")
+            }
+            Self::G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16 => {
+                Some("G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16")
+            }
+            Self::R12X4_UNORM_PACK16 => Some("R12X4_UNORM_PACK16"),
+            Self::R12X4G12X4_UNORM_2PACK16 => Some("R12X4G12X4_UNORM_2PACK16"),
+            Self::R12X4G12X4B12X4A12X4_UNORM_4PACK16 => Some("R12X4G12X4B12X4A12X4_UNORM_4PACK16"),
+            Self::G12X4B12X4G12X4R12X4_422_UNORM_4PACK16 => {
+                Some("G12X4B12X4G12X4R12X4_422_UNORM_4PACK16")
+            }
+            Self::B12X4G12X4R12X4G12X4_422_UNORM_4PACK16 => {
+                Some("B12X4G12X4R12X4G12X4_422_UNORM_4PACK16")
+            }
+            Self::G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16 => {
+                Some("G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16")
+            }
+            Self::G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16 => {
+                Some("G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16")
+            }
+            Self::G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16 => {
+                Some("G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16")
+            }
+            Self::G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16 => {
+                Some("G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16")
+            }
+            Self::G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16 => {
+                Some("G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16")
+            }
+            Self::G16B16G16R16_422_UNORM => Some("G16B16G16R16_422_UNORM"),
+            Self::B16G16R16G16_422_UNORM => Some("B16G16R16G16_422_UNORM"),
+            Self::G16_B16_R16_3PLANE_420_UNORM => Some("G16_B16_R16_3PLANE_420_UNORM"),
+            Self::G16_B16R16_2PLANE_420_UNORM => Some("G16_B16R16_2PLANE_420_UNORM"),
+            Self::G16_B16_R16_3PLANE_422_UNORM => Some("G16_B16_R16_3PLANE_422_UNORM"),
+            Self::G16_B16R16_2PLANE_422_UNORM => Some("G16_B16R16_2PLANE_422_UNORM"),
+            Self::G16_B16_R16_3PLANE_444_UNORM => Some("G16_B16_R16_3PLANE_444_UNORM"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54313,11 +57121,25 @@ impl fmt::Display for ColorSpaceKHR {
         }
     }
 }
-impl fmt::Display for GeometryTypeNV {
+impl fmt::Display for SampleCountFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (SampleCountFlags::TYPE_1.0, "TYPE_1"),
+            (SampleCountFlags::TYPE_2.0, "TYPE_2"),
+            (SampleCountFlags::TYPE_4.0, "TYPE_4"),
+            (SampleCountFlags::TYPE_8.0, "TYPE_8"),
+            (SampleCountFlags::TYPE_16.0, "TYPE_16"),
+            (SampleCountFlags::TYPE_32.0, "TYPE_32"),
+            (SampleCountFlags::TYPE_64.0, "TYPE_64"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for RasterizationOrderAMD {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::TRIANGLES => Some("TRIANGLES"),
-            Self::AABBS => Some("AABBS"),
+            Self::STRICT => Some("STRICT"),
+            Self::RELAXED => Some("RELAXED"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54327,46 +57149,118 @@ impl fmt::Display for GeometryTypeNV {
         }
     }
 }
-impl fmt::Display for DebugReportObjectTypeEXT {
+impl fmt::Display for DescriptorPoolCreateFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                DescriptorPoolCreateFlags::FREE_DESCRIPTOR_SET.0,
+                "FREE_DESCRIPTOR_SET",
+            ),
+            (
+                DescriptorPoolCreateFlags::UPDATE_AFTER_BIND_EXT.0,
+                "UPDATE_AFTER_BIND_EXT",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for PresentModeKHR {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::UNKNOWN => Some("UNKNOWN"),
-            Self::INSTANCE => Some("INSTANCE"),
-            Self::PHYSICAL_DEVICE => Some("PHYSICAL_DEVICE"),
+            Self::IMMEDIATE => Some("IMMEDIATE"),
+            Self::MAILBOX => Some("MAILBOX"),
+            Self::FIFO => Some("FIFO"),
+            Self::FIFO_RELAXED => Some("FIFO_RELAXED"),
+            Self::SHARED_DEMAND_REFRESH => Some("SHARED_DEMAND_REFRESH"),
+            Self::SHARED_CONTINUOUS_REFRESH => Some("SHARED_CONTINUOUS_REFRESH"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for MemoryPropertyFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (MemoryPropertyFlags::DEVICE_LOCAL.0, "DEVICE_LOCAL"),
+            (MemoryPropertyFlags::HOST_VISIBLE.0, "HOST_VISIBLE"),
+            (MemoryPropertyFlags::HOST_COHERENT.0, "HOST_COHERENT"),
+            (MemoryPropertyFlags::HOST_CACHED.0, "HOST_CACHED"),
+            (MemoryPropertyFlags::LAZILY_ALLOCATED.0, "LAZILY_ALLOCATED"),
+            (MemoryPropertyFlags::PROTECTED.0, "PROTECTED"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for CullModeFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (CullModeFlags::NONE.0, "NONE"),
+            (CullModeFlags::FRONT.0, "FRONT"),
+            (CullModeFlags::BACK.0, "BACK"),
+            (CullModeFlags::FRONT_AND_BACK.0, "FRONT_AND_BACK"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for RenderPassCreateFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] =
+            &[(RenderPassCreateFlags::RESERVED_0_KHR.0, "RESERVED_0_KHR")];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for RayTracingShaderGroupTypeNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::GENERAL => Some("GENERAL"),
+            Self::TRIANGLES_HIT_GROUP => Some("TRIANGLES_HIT_GROUP"),
+            Self::PROCEDURAL_HIT_GROUP => Some("PROCEDURAL_HIT_GROUP"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ImageUsageFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (ImageUsageFlags::TRANSFER_SRC.0, "TRANSFER_SRC"),
+            (ImageUsageFlags::TRANSFER_DST.0, "TRANSFER_DST"),
+            (ImageUsageFlags::SAMPLED.0, "SAMPLED"),
+            (ImageUsageFlags::STORAGE.0, "STORAGE"),
+            (ImageUsageFlags::COLOR_ATTACHMENT.0, "COLOR_ATTACHMENT"),
+            (
+                ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT.0,
+                "DEPTH_STENCIL_ATTACHMENT",
+            ),
+            (
+                ImageUsageFlags::TRANSIENT_ATTACHMENT.0,
+                "TRANSIENT_ATTACHMENT",
+            ),
+            (ImageUsageFlags::INPUT_ATTACHMENT.0, "INPUT_ATTACHMENT"),
+            (
+                ImageUsageFlags::SHADING_RATE_IMAGE_NV.0,
+                "SHADING_RATE_IMAGE_NV",
+            ),
+            (ImageUsageFlags::RESERVED_9_EXT.0, "RESERVED_9_EXT"),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for TimeDomainEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
             Self::DEVICE => Some("DEVICE"),
-            Self::QUEUE => Some("QUEUE"),
-            Self::SEMAPHORE => Some("SEMAPHORE"),
-            Self::COMMAND_BUFFER => Some("COMMAND_BUFFER"),
-            Self::FENCE => Some("FENCE"),
-            Self::DEVICE_MEMORY => Some("DEVICE_MEMORY"),
-            Self::BUFFER => Some("BUFFER"),
-            Self::IMAGE => Some("IMAGE"),
-            Self::EVENT => Some("EVENT"),
-            Self::QUERY_POOL => Some("QUERY_POOL"),
-            Self::BUFFER_VIEW => Some("BUFFER_VIEW"),
-            Self::IMAGE_VIEW => Some("IMAGE_VIEW"),
-            Self::SHADER_MODULE => Some("SHADER_MODULE"),
-            Self::PIPELINE_CACHE => Some("PIPELINE_CACHE"),
-            Self::PIPELINE_LAYOUT => Some("PIPELINE_LAYOUT"),
-            Self::RENDER_PASS => Some("RENDER_PASS"),
-            Self::PIPELINE => Some("PIPELINE"),
-            Self::DESCRIPTOR_SET_LAYOUT => Some("DESCRIPTOR_SET_LAYOUT"),
-            Self::SAMPLER => Some("SAMPLER"),
-            Self::DESCRIPTOR_POOL => Some("DESCRIPTOR_POOL"),
-            Self::DESCRIPTOR_SET => Some("DESCRIPTOR_SET"),
-            Self::FRAMEBUFFER => Some("FRAMEBUFFER"),
-            Self::COMMAND_POOL => Some("COMMAND_POOL"),
-            Self::SURFACE_KHR => Some("SURFACE_KHR"),
-            Self::SWAPCHAIN_KHR => Some("SWAPCHAIN_KHR"),
-            Self::DEBUG_REPORT_CALLBACK => Some("DEBUG_REPORT_CALLBACK"),
-            Self::DISPLAY_KHR => Some("DISPLAY_KHR"),
-            Self::DISPLAY_MODE_KHR => Some("DISPLAY_MODE_KHR"),
-            Self::OBJECT_TABLE_NVX => Some("OBJECT_TABLE_NVX"),
-            Self::INDIRECT_COMMANDS_LAYOUT_NVX => Some("INDIRECT_COMMANDS_LAYOUT_NVX"),
-            Self::VALIDATION_CACHE => Some("VALIDATION_CACHE"),
-            Self::SAMPLER_YCBCR_CONVERSION => Some("SAMPLER_YCBCR_CONVERSION"),
-            Self::DESCRIPTOR_UPDATE_TEMPLATE => Some("DESCRIPTOR_UPDATE_TEMPLATE"),
-            Self::ACCELERATION_STRUCTURE_NV => Some("ACCELERATION_STRUCTURE_NV"),
+            Self::CLOCK_MONOTONIC => Some("CLOCK_MONOTONIC"),
+            Self::CLOCK_MONOTONIC_RAW => Some("CLOCK_MONOTONIC_RAW"),
+            Self::QUERY_PERFORMANCE_COUNTER => Some("QUERY_PERFORMANCE_COUNTER"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54376,28 +57270,85 @@ impl fmt::Display for DebugReportObjectTypeEXT {
         }
     }
 }
-impl fmt::Display for GeometryFlagsNV {
+impl fmt::Display for SparseImageFormatFlags {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         const KNOWN: &[(Flags, &str)] = &[
-            (GeometryFlagsNV::OPAQUE.0, "OPAQUE"),
+            (SparseImageFormatFlags::SINGLE_MIPTAIL.0, "SINGLE_MIPTAIL"),
             (
-                GeometryFlagsNV::NO_DUPLICATE_ANY_HIT_INVOCATION.0,
-                "NO_DUPLICATE_ANY_HIT_INVOCATION",
+                SparseImageFormatFlags::ALIGNED_MIP_SIZE.0,
+                "ALIGNED_MIP_SIZE",
+            ),
+            (
+                SparseImageFormatFlags::NONSTANDARD_BLOCK_SIZE.0,
+                "NONSTANDARD_BLOCK_SIZE",
             ),
         ];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for ImageViewType {
+impl fmt::Display for FenceImportFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[(FenceImportFlags::TEMPORARY.0, "TEMPORARY")];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for ValidationCheckEXT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::ALL => Some("ALL"),
+            Self::SHADERS => Some("SHADERS"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for SystemAllocationScope {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::COMMAND => Some("COMMAND"),
+            Self::OBJECT => Some("OBJECT"),
+            Self::CACHE => Some("CACHE"),
+            Self::DEVICE => Some("DEVICE"),
+            Self::INSTANCE => Some("INSTANCE"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ViewportCoordinateSwizzleNV {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::POSITIVE_X => Some("POSITIVE_X"),
+            Self::NEGATIVE_X => Some("NEGATIVE_X"),
+            Self::POSITIVE_Y => Some("POSITIVE_Y"),
+            Self::NEGATIVE_Y => Some("NEGATIVE_Y"),
+            Self::POSITIVE_Z => Some("POSITIVE_Z"),
+            Self::NEGATIVE_Z => Some("NEGATIVE_Z"),
+            Self::POSITIVE_W => Some("POSITIVE_W"),
+            Self::NEGATIVE_W => Some("NEGATIVE_W"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for ImageType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
             Self::TYPE_1D => Some("TYPE_1D"),
             Self::TYPE_2D => Some("TYPE_2D"),
             Self::TYPE_3D => Some("TYPE_3D"),
-            Self::CUBE => Some("CUBE"),
-            Self::TYPE_1D_ARRAY => Some("TYPE_1D_ARRAY"),
-            Self::TYPE_2D_ARRAY => Some("TYPE_2D_ARRAY"),
-            Self::CUBE_ARRAY => Some("CUBE_ARRAY"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54407,17 +57358,28 @@ impl fmt::Display for ImageViewType {
         }
     }
 }
-impl fmt::Display for FormatFeatureFlags {
+impl fmt::Display for DebugUtilsMessageSeverityFlagsEXT {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const KNOWN : & [ ( Flags , & str ) ] = & [ ( FormatFeatureFlags :: SAMPLED_IMAGE . 0 , "SAMPLED_IMAGE" ) , ( FormatFeatureFlags :: STORAGE_IMAGE . 0 , "STORAGE_IMAGE" ) , ( FormatFeatureFlags :: STORAGE_IMAGE_ATOMIC . 0 , "STORAGE_IMAGE_ATOMIC" ) , ( FormatFeatureFlags :: UNIFORM_TEXEL_BUFFER . 0 , "UNIFORM_TEXEL_BUFFER" ) , ( FormatFeatureFlags :: STORAGE_TEXEL_BUFFER . 0 , "STORAGE_TEXEL_BUFFER" ) , ( FormatFeatureFlags :: STORAGE_TEXEL_BUFFER_ATOMIC . 0 , "STORAGE_TEXEL_BUFFER_ATOMIC" ) , ( FormatFeatureFlags :: VERTEX_BUFFER . 0 , "VERTEX_BUFFER" ) , ( FormatFeatureFlags :: COLOR_ATTACHMENT . 0 , "COLOR_ATTACHMENT" ) , ( FormatFeatureFlags :: COLOR_ATTACHMENT_BLEND . 0 , "COLOR_ATTACHMENT_BLEND" ) , ( FormatFeatureFlags :: DEPTH_STENCIL_ATTACHMENT . 0 , "DEPTH_STENCIL_ATTACHMENT" ) , ( FormatFeatureFlags :: BLIT_SRC . 0 , "BLIT_SRC" ) , ( FormatFeatureFlags :: BLIT_DST . 0 , "BLIT_DST" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_FILTER_LINEAR . 0 , "SAMPLED_IMAGE_FILTER_LINEAR" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_FILTER_CUBIC_IMG . 0 , "SAMPLED_IMAGE_FILTER_CUBIC_IMG" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_FILTER_MINMAX_EXT . 0 , "SAMPLED_IMAGE_FILTER_MINMAX_EXT" ) , ( FormatFeatureFlags :: RESERVED_24_EXT . 0 , "RESERVED_24_EXT" ) , ( FormatFeatureFlags :: TRANSFER_SRC . 0 , "TRANSFER_SRC" ) , ( FormatFeatureFlags :: TRANSFER_DST . 0 , "TRANSFER_DST" ) , ( FormatFeatureFlags :: MIDPOINT_CHROMA_SAMPLES . 0 , "MIDPOINT_CHROMA_SAMPLES" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER . 0 , "SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER . 0 , "SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT . 0 , "SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT" ) , ( FormatFeatureFlags :: SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE . 0 , "SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE" ) , ( FormatFeatureFlags :: DISJOINT . 0 , "DISJOINT" ) , ( FormatFeatureFlags :: COSITED_CHROMA_SAMPLES . 0 , "COSITED_CHROMA_SAMPLES" ) ] ;
+        const KNOWN: &[(Flags, &str)] = &[
+            (DebugUtilsMessageSeverityFlagsEXT::VERBOSE.0, "VERBOSE"),
+            (DebugUtilsMessageSeverityFlagsEXT::INFO.0, "INFO"),
+            (DebugUtilsMessageSeverityFlagsEXT::WARNING.0, "WARNING"),
+            (DebugUtilsMessageSeverityFlagsEXT::ERROR.0, "ERROR"),
+        ];
         display_flags(f, KNOWN, self.0)
     }
 }
-impl fmt::Display for SharingMode {
+impl fmt::Display for IndirectCommandsTokenTypeNVX {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::EXCLUSIVE => Some("EXCLUSIVE"),
-            Self::CONCURRENT => Some("CONCURRENT"),
+            Self::PIPELINE => Some("PIPELINE"),
+            Self::DESCRIPTOR_SET => Some("DESCRIPTOR_SET"),
+            Self::INDEX_BUFFER => Some("INDEX_BUFFER"),
+            Self::VERTEX_BUFFER => Some("VERTEX_BUFFER"),
+            Self::PUSH_CONSTANT => Some("PUSH_CONSTANT"),
+            Self::DRAW_INDEXED => Some("DRAW_INDEXED"),
+            Self::DRAW => Some("DRAW"),
+            Self::DISPATCH => Some("DISPATCH"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54427,10 +57389,64 @@ impl fmt::Display for SharingMode {
         }
     }
 }
-impl fmt::Display for DeviceEventTypeEXT {
+impl fmt::Display for QueryPipelineStatisticFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (
+                QueryPipelineStatisticFlags::INPUT_ASSEMBLY_VERTICES.0,
+                "INPUT_ASSEMBLY_VERTICES",
+            ),
+            (
+                QueryPipelineStatisticFlags::INPUT_ASSEMBLY_PRIMITIVES.0,
+                "INPUT_ASSEMBLY_PRIMITIVES",
+            ),
+            (
+                QueryPipelineStatisticFlags::VERTEX_SHADER_INVOCATIONS.0,
+                "VERTEX_SHADER_INVOCATIONS",
+            ),
+            (
+                QueryPipelineStatisticFlags::GEOMETRY_SHADER_INVOCATIONS.0,
+                "GEOMETRY_SHADER_INVOCATIONS",
+            ),
+            (
+                QueryPipelineStatisticFlags::GEOMETRY_SHADER_PRIMITIVES.0,
+                "GEOMETRY_SHADER_PRIMITIVES",
+            ),
+            (
+                QueryPipelineStatisticFlags::CLIPPING_INVOCATIONS.0,
+                "CLIPPING_INVOCATIONS",
+            ),
+            (
+                QueryPipelineStatisticFlags::CLIPPING_PRIMITIVES.0,
+                "CLIPPING_PRIMITIVES",
+            ),
+            (
+                QueryPipelineStatisticFlags::FRAGMENT_SHADER_INVOCATIONS.0,
+                "FRAGMENT_SHADER_INVOCATIONS",
+            ),
+            (
+                QueryPipelineStatisticFlags::TESSELLATION_CONTROL_SHADER_PATCHES.0,
+                "TESSELLATION_CONTROL_SHADER_PATCHES",
+            ),
+            (
+                QueryPipelineStatisticFlags::TESSELLATION_EVALUATION_SHADER_INVOCATIONS.0,
+                "TESSELLATION_EVALUATION_SHADER_INVOCATIONS",
+            ),
+            (
+                QueryPipelineStatisticFlags::COMPUTE_SHADER_INVOCATIONS.0,
+                "COMPUTE_SHADER_INVOCATIONS",
+            ),
+        ];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for QueueGlobalPriorityEXT {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::DISPLAY_HOTPLUG => Some("DISPLAY_HOTPLUG"),
+            Self::LOW => Some("LOW"),
+            Self::MEDIUM => Some("MEDIUM"),
+            Self::HIGH => Some("HIGH"),
+            Self::REALTIME => Some("REALTIME"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54440,25 +57456,34 @@ impl fmt::Display for DeviceEventTypeEXT {
         }
     }
 }
-impl fmt::Display for LogicOp {
+impl fmt::Display for SubpassContents {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let name = match *self {
-            Self::CLEAR => Some("CLEAR"),
-            Self::AND => Some("AND"),
-            Self::AND_REVERSE => Some("AND_REVERSE"),
-            Self::COPY => Some("COPY"),
-            Self::AND_INVERTED => Some("AND_INVERTED"),
-            Self::NO_OP => Some("NO_OP"),
-            Self::XOR => Some("XOR"),
-            Self::OR => Some("OR"),
-            Self::NOR => Some("NOR"),
-            Self::EQUIVALENT => Some("EQUIVALENT"),
-            Self::INVERT => Some("INVERT"),
-            Self::OR_REVERSE => Some("OR_REVERSE"),
-            Self::COPY_INVERTED => Some("COPY_INVERTED"),
-            Self::OR_INVERTED => Some("OR_INVERTED"),
-            Self::NAND => Some("NAND"),
-            Self::SET => Some("SET"),
+            Self::INLINE => Some("INLINE"),
+            Self::SECONDARY_COMMAND_BUFFERS => Some("SECONDARY_COMMAND_BUFFERS"),
+            _ => None,
+        };
+        if let Some(x) = name {
+            f.write_str(x)
+        } else {
+            write!(f, "{}", self.0)
+        }
+    }
+}
+impl fmt::Display for CommandPoolResetFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[(
+            CommandPoolResetFlags::RELEASE_RESOURCES.0,
+            "RELEASE_RESOURCES",
+        )];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for PointClippingBehavior {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match *self {
+            Self::ALL_CLIP_PLANES => Some("ALL_CLIP_PLANES"),
+            Self::USER_CLIP_PLANES_ONLY => Some("USER_CLIP_PLANES_ONLY"),
             _ => None,
         };
         if let Some(x) = name {
@@ -54529,6 +57554,22 @@ impl fmt::Display for BlendOp {
         } else {
             write!(f, "{}", self.0)
         }
+    }
+}
+impl fmt::Display for AttachmentDescriptionFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[(AttachmentDescriptionFlags::MAY_ALIAS.0, "MAY_ALIAS")];
+        display_flags(f, KNOWN, self.0)
+    }
+}
+impl fmt::Display for DependencyFlags {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const KNOWN: &[(Flags, &str)] = &[
+            (DependencyFlags::BY_REGION.0, "BY_REGION"),
+            (DependencyFlags::DEVICE_GROUP.0, "DEVICE_GROUP"),
+            (DependencyFlags::VIEW_LOCAL.0, "VIEW_LOCAL"),
+        ];
+        display_flags(f, KNOWN, self.0)
     }
 }
 pub type DescriptorUpdateTemplateCreateFlagsKHR = DescriptorUpdateTemplateCreateFlags;

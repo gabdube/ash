@@ -1583,19 +1583,14 @@ pub fn derive_setters(_struct: &vkxml::Struct) -> Option<Tokens> {
     }
 
     let next_function = if has_next {
-        if is_next_const {
-            quote! {
-                pub fn next<T>(mut self, next: &'a T) -> #name_builder<'a> where T: #extends_name {
-                    self.inner.p_next = next as *const T as *const c_void;
-                    self
+        quote! {
+            pub fn next<T: #extends_name>(mut self, next: &'a mut impl ::std::ops::DerefMut<Target = T>) -> #name_builder<'a> {
+                unsafe{
+                    let ptr = &mut self.inner as *mut _ as *mut c_void;
+                    let last_extension = ExtensionChain::last_chain(ptr);
+                    (*last_extension).p_next = next.deref_mut() as *mut T as *mut c_void;
                 }
-            }
-        } else {
-            quote! {
-                pub fn next<T>(mut self, next: &'a mut T) -> #name_builder<'a> where T: #extends_name {
-                    self.inner.p_next = next as *mut T as *mut c_void;
-                    self
-                }
+                self
             }
         }
     } else {
@@ -1627,6 +1622,7 @@ pub fn derive_setters(_struct: &vkxml::Struct) -> Option<Tokens> {
 
         #next_trait
 
+
         #(#nexts)*
 
         impl<'a> ::std::ops::Deref for #name_builder<'a> {
@@ -1634,6 +1630,11 @@ pub fn derive_setters(_struct: &vkxml::Struct) -> Option<Tokens> {
 
             fn deref(&self) -> &Self::Target {
                 &self.inner
+            }
+        }
+        impl<'a> ::std::ops::DerefMut for #name_builder<'a> {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.inner
             }
         }
 
@@ -2133,6 +2134,32 @@ pub fn write_source_code(path: &Path) {
         use std::fmt;
         use std::os::raw::*;
 
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct ExtensionChain {
+            pub s_type: StructureType,
+            pub p_next: *mut c_void
+        }
+
+        impl ExtensionChain {
+            pub unsafe fn from_ptr(ptr: *mut c_void) -> *mut Self {
+                ::std::mem::transmute(ptr)
+            }
+            pub unsafe fn last_chain(ptr: *mut c_void) -> *mut Self {
+                assert!(!ptr.is_null());
+                let mut extension = ExtensionChain::from_ptr(ptr);
+                while !(*extension).p_next.is_null() {
+                    extension = ExtensionChain::from_ptr((*extension).p_next);
+                }
+                extension
+            }
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct ExtensionChainMut {
+            pub s_type: StructureType,
+            pub p_next: *mut c_void
+        }
         pub trait Handle {
             const TYPE: ObjectType;
             fn as_raw(self) -> u64;
